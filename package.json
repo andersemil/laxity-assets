@@ -1,0 +1,24 @@
+{
+    "name": "com.aranciaassets.editortools",
+    "version": "1.0.0",
+    "displayName": "Arancia Assets Editor Tools",
+    "description": "This is some cool tools for the editor",
+    "unity": "2019.4",
+    "documentationUrl": "https://github.com/laxityassets",
+    "changelogUrl": "https://github.com/laxityassets",
+    "licensesUrl": "https://github.com/laxityassets",
+    "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2",
+        "com.unity.editorcoroutines": "1.0.0"
+    },
+    "keywords": [
+        "Arancia",
+        "AranciaAssets",
+        "Tools"
+    ],
+    "author": {
+        "name": "Laxity Assets",
+        "email": "anders.emil.hansen@gmail.com",
+        "url": "https://github.com/laxityassets"
+    }
+}
