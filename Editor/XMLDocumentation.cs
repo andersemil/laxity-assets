@@ -345,9 +345,12 @@ namespace AranciaAssets.EditorTools {
             AsyncDownloads.Remove (url);
 
             if (asyncOp.webRequest.result != UnityWebRequest.Result.Success) {
-                UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
+                var result = asyncOp.webRequest.result != UnityWebRequest.Result.ProtocolError;
+                if (!result) {
+                    UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
+                }
                 asyncOp.webRequest.Dispose ();
-                return false;
+                return result;
             }
             var doc = asyncOp.webRequest.downloadHandler.text;
             asyncOp.webRequest.Dispose ();
