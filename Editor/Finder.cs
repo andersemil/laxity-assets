@@ -672,25 +672,30 @@ namespace AranciaAssets.EditorTools {
 			inspectorWindow.*/
 
 			Results.Clear ();
-			var allObjects = Resources.FindObjectsOfTypeAll (typeof (GameObject)) as GameObject [];
-			foreach (var go in allObjects) {
-				if (!go.scene.isLoaded)
+			var list = new List<GameObject> ();
+			var listComp = new List<Component> ();
+			for (int i = 0; i < EditorSceneManager.sceneCount; i++) {
+				var scene = EditorSceneManager.GetSceneAt (i);
+				if (!scene.isLoaded)
 					continue;
-				var components = go.GetComponents<Component> ();
-				foreach (var component in components) {
-					if (component == null) {
-						Debug.LogError ("Missing script found on: " + go.GetScenePath (), go);
-					} else {
-						var so = new SerializedObject (component);
-						var sp = so.GetIterator ();
+				scene.GetRootGameObjects (list);
+				foreach (var go in list) {
+					go.GetComponentsInChildren (true, listComp);
+					foreach (var component in listComp) {
+						if (component == null) {
+							Debug.LogError ("Missing script found on: " + component.GetScenePath (), component);
+						} else {
+							var so = new SerializedObject (component);
+							var sp = so.GetIterator ();
 
-						while (sp.NextVisible (true)) {
-							if (sp.propertyType != SerializedPropertyType.ObjectReference) {
-								continue;
-							}
+							while (sp.NextVisible (true)) {
+								if (sp.propertyType != SerializedPropertyType.ObjectReference) {
+									continue;
+								}
 
-							if (sp.objectReferenceValue == null && sp.objectReferenceInstanceIDValue != 0) {
-								AddResult (component, sp.propertyPath, NicePropertyPath (sp));
+								if (sp.objectReferenceValue == null && sp.objectReferenceInstanceIDValue != 0) {
+									AddResult (component, sp.propertyPath, NicePropertyPath (sp));
+								}
 							}
 						}
 					}
@@ -860,6 +865,25 @@ namespace AranciaAssets.EditorTools {
 	}
 
 	/// <summary>
+	/// Custom Editor for properties. This enables us to display reference tooltips
+	/// </summary>
+	[CustomPropertyDrawer (typeof (bool), true)]
+	[CustomPropertyDrawer (typeof (float), true)]
+	[CustomPropertyDrawer (typeof (Vector3), true)]
+	[CustomPropertyDrawer (typeof (Vector2), true)]
+	[CustomPropertyDrawer (typeof (int), true)]
+	[CustomPropertyDrawer (typeof (Enum), true)]
+	[CustomPropertyDrawer (typeof (LayerMask), true)]
+	public class CustomPropertyEditor : PropertyDrawer {
+		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
+			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+				label.tooltip = property.GetDocumentation ();
+			}
+			EditorGUI.PropertyField (position, property, label);
+		}
+	}
+
+	/// <summary>
 	/// Custom Editor for object properties. This enables us to highlight object search results (tags, layers etc)
 	/// </summary>
 	[CustomPropertyDrawer (typeof (UnityEngine.Object), true)]
@@ -867,6 +891,9 @@ namespace AranciaAssets.EditorTools {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			var identifier = $"{property.serializedObject.targetObject.GetInstanceID ()}.{property.propertyPath}";
 			Highlighter.HighlightIdentifier (position, identifier);
+			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+				label.tooltip = property.GetDocumentation ();
+			}
 			EditorGUI.PropertyField (position, property, label);
 		}
 	}
@@ -879,6 +906,9 @@ namespace AranciaAssets.EditorTools {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			var identifier = $"{property.serializedObject.targetObject.GetInstanceID ()}.{property.propertyPath}";
 			Highlighter.HighlightIdentifier (position, identifier);
+			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+				label.tooltip = property.GetDocumentation ();
+			}
 			EditorGUI.PropertyField (position, property, label);
 		}
 	}
