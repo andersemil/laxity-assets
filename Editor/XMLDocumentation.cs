@@ -180,11 +180,13 @@ namespace AranciaAssets.EditorTools {
             if (typeFullName.StartsWith ("UnityEngine.")) {
                 if (
                     type.Namespace == "UnityEngine.UI"
+                    || type.Namespace == "UnityEngine.EventSystems"
                  //|| type.Namespace == "UnityEngine.Experimental.Rendering.Universal"
                  //|| type.Namespace == "UnityEngine.Rendering.Universal"
                  ) {
-                    //Scrape core package documentation
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
+                } else if (type.Namespace == "UnityEngine.InputSystem.UI") {
+                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.inputsystem@1.8/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
                 } else {
                     //Scrape built-in package documentation
                     //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
