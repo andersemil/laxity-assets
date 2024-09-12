@@ -75,7 +75,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Toggle menu item path
         /// </summary>
-        private const string OpdMenuName = "Arancia/Better Event Layout";
+        private const string OpdMenuName = "Tools/Arancia/Better Event Layout";
         private const string OpdKey = "BetterEventDrawer";
 
         [MenuItem (OpdMenuName)]

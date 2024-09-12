@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
 using UnityEngine.Events;
 
 using UnityEditor;
 using UnityEditor.Sprites;
+using UnityEditor.SceneManagement;
 
 using Unity.EditorCoroutines.Editor;
-using UnityEngine.UI;
-using System.Text.RegularExpressions;
-using UnityEditor.SceneManagement;
 
 namespace AranciaAssets.EditorTools {
 
@@ -355,11 +355,9 @@ namespace AranciaAssets.EditorTools {
 			}
 		}
 
-		[MenuItem (itemName: "Arancia/Finder %g", isValidateFunction: false, priority: 0)]
+		[MenuItem (itemName: "Tools/Arancia Finder %g", isValidateFunction: false, priority: 0)]
 		static void Init () {
-			if (instance == null) {
-				instance = GetWindow<Finder> ("Arancia Finder", true);
-			}
+			instance = GetWindow<Finder> ("Arancia Finder", true);
 			instance.Focus ();
 		}
 
