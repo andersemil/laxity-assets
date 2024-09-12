@@ -372,7 +372,8 @@ namespace AranciaAssets.EditorTools {
         }
 
         static readonly Type BaseComponentType = typeof (Component);
-        static readonly Type MonoBehaviourType = typeof (MonoBehaviour);
+        static readonly Type ObsoleteType = typeof (ObsoleteAttribute);
+        static readonly Type VoidType = typeof (void);
 
         /// <summary>
 		/// Filter out methods from base classes to clear up the mud.
@@ -384,10 +385,10 @@ namespace AranciaAssets.EditorTools {
 
             // find the methods on the behaviour that match the signature
             Type componentType = target.GetType ();
-            var componentMethods = componentType.GetMethods ().Where (x => /*!x.IsStatic && */!x.IsSpecialName).ToList ();
+            var componentMethods = componentType.GetMethods ().Where (x => /*!x.IsStatic && */!x.IsSpecialName && x.GetCustomAttributes (ObsoleteType, true).Length == 0 && x.ReturnType == VoidType).ToList ();
 
-            var wantedProperties = componentType.GetProperties ().AsEnumerable ();
-            wantedProperties = wantedProperties.Where (x => x.DeclaringType != BaseComponentType && x.GetCustomAttributes (typeof (ObsoleteAttribute), true).Length == 0 && x.GetSetMethod () != null);
+            var wantedProperties = componentType.GetProperties ().AsEnumerable ()
+                .Where (x => x.DeclaringType != BaseComponentType && x.GetCustomAttributes (ObsoleteType, true).Length == 0 && x.GetSetMethod () != null);
             componentMethods.AddRange (wantedProperties.Select (x => x.GetSetMethod ()));
 
             foreach (var componentMethod in componentMethods) {
@@ -395,14 +396,6 @@ namespace AranciaAssets.EditorTools {
                 // if the argument length is not the same, no match
                 var componentParameters = componentMethod.GetParameters ();
                 if (componentParameters.Length != t.Length)
-                    continue;
-
-                // Don't show obsolete methods.
-                if (componentMethod.GetCustomAttributes (typeof (ObsoleteAttribute), true).Length > 0)
-                    continue;
-
-                // DOn't show methods with a return type other than void
-                if (componentMethod.ReturnType != typeof (void))
                     continue;
 
                 // if the argument types do not match, no match
