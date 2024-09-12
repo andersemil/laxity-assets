@@ -467,7 +467,8 @@ namespace AranciaAssets.EditorTools {
         /// Parses xml documentation file and add/replace to documentation dictionary
         /// </summary>
         static void LoadXMLCache (string filename) {
-            using var xmlReader = XmlReader.Create (new StreamReader (new FileStream (filename, FileMode.Open)));
+            using var streamReader = new StreamReader (new FileStream (filename, FileMode.Open));
+            using var xmlReader = XmlReader.Create (streamReader);
             while (xmlReader.Read ()) {
                 if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.Name == "member") {
                     var raw_name = xmlReader ["name"];
