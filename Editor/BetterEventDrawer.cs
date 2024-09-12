@@ -262,10 +262,15 @@ namespace AranciaAssets.EditorTools {
         //static Texture2D texturePanel;
 
         public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
+            var headerContent = label.text;
             base.OnGUI (position, property, label);
             if (m_HeaderContent == null) {
                 var icon = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("db4aaf330ef7e43858c9c49ff984c8c3"));
-                m_HeaderContent = new GUIContent (label.text + miGetEventParams.Invoke (this, new object [] { m_DummyEvent }), icon, label.tooltip);
+                var tooltip = label.tooltip;
+                if (string.IsNullOrWhiteSpace (tooltip)) {
+                    tooltip = property.GetDocumentation ();
+                }
+                m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { m_DummyEvent }), icon, tooltip);
             }
         }
 

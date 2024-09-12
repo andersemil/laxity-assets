@@ -102,15 +102,35 @@ namespace AranciaAssets.EditorTools {
         }
 
         /// <summary>
+		/// Get XML documentation for a SerializedProperty
+		/// </summary>
+        public static string GetDocumentation (this UnityEditor.SerializedProperty property) {
+            var declaringType = property.serializedObject.targetObject.GetType ();
+            var propName = property.propertyPath;
+            var idxOfDot = propName.IndexOf ('.');
+            if (idxOfDot > 0) {
+                propName = propName.Substring (0, idxOfDot);
+            }
+            if (propName.StartsWith ("m_")) {
+                propName = char.ToLower (propName [2]) + propName [3..];
+            }
+            var key = "P:" + XmlDocumentationKeyHelper (declaringType.FullName, propName);
+            return GetDocumentation (declaringType, key);
+        }
+
+        /// <summary>
 		/// Attempt to find documentation for the given member
 		/// </summary>
         static string GetDocumentation (Type declaringType, string key) {
             if (Documentation.TryGetValue (key, out string documentation))
                 return documentation;
-            if (LoadXmlDocumentation (declaringType, key, out documentation))
-                return documentation;
-            GenerateDocumentationForType (declaringType);
-            Documentation.TryGetValue (key, out documentation);
+            if (!LoadedTypes.Contains (declaringType.FullName)) {
+                if (LoadXmlDocumentation (declaringType, key, out documentation))
+                    return documentation;
+                UnityEngine.Debug.Log ($"Documentation not found, generating: {key}");
+                GenerateDocumentationForType (declaringType);
+                Documentation.TryGetValue (key, out documentation);
+            }
             return documentation;
         }
 
@@ -167,7 +187,7 @@ namespace AranciaAssets.EditorTools {
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
                 } else {
                     //Scrape built-in package documentation
-                    UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
+                    //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
                     var typeName = type.FullName.Replace ("UnityEngine.", string.Empty);
                     var docVersionString = UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/{docVersionString}/Documentation/ScriptReference/{typeName}.html", typeFullName, UnityEngineDocMemberRegex);
@@ -305,7 +325,8 @@ namespace AranciaAssets.EditorTools {
 
 		/// <summary>
 		/// Scrape online documentation for description of members of a specific class.
-		/// As this method is called frequently when UI is repainted, we can create async ops and monitor them so we don't block the main/UI thread
+		/// As this method is called frequently when UI is repainted, we can create async ops and monitor them so we don't block the main/UI thread.
+        /// Returns <c>true</c> if the documentation is or may become available from the specified url.
 		/// </summary>
 		static bool ScrapeUnityDocumentation (string url, string nameSpaceAndClass, Regex memberRegex) {
             if (LoadDocumentationCache (url))
@@ -375,6 +396,7 @@ namespace AranciaAssets.EditorTools {
             while (en.MoveNext ())
                 Documentation.Add (en.Current.Key, en.Current.Value);
 
+            LoadedTypes.Add (nameSpaceAndClass);
             return true;
         }
 
@@ -394,8 +416,12 @@ namespace AranciaAssets.EditorTools {
             }
         }
 
+        static readonly System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create ();
+
+        /// <summary>
+        /// Calculate MD5 checksum of supplied string
+        /// </summary>
         static string ComputeMD5Hash (string s) {
-            using var md5 = System.Security.Cryptography.MD5.Create ();
             var hash = md5.ComputeHash (System.Text.Encoding.UTF8.GetBytes (s));
             var sb = new System.Text.StringBuilder ();
             for (var i = 0; i < hash.Length; ++i) {
@@ -404,6 +430,9 @@ namespace AranciaAssets.EditorTools {
             return sb.ToString ();
         }
 
+        /// <summary>
+        /// Update cached xml documentation file with new keys
+        /// </summary>
         static void UpdateDocumentationCache (string url, IDictionary<string, string> dict) {
             var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url));
             using var fs = new FileStream (filename, FileMode.Create);
@@ -417,20 +446,26 @@ namespace AranciaAssets.EditorTools {
             }
             sw.Write ("\t</members>\n</doc>\n");
 
-            UnityEngine.Debug.Log ($"Cached doc for {url} in {filename}");
+            //UnityEngine.Debug.Log ($"Cached doc for {url} in {filename}");
         }
 
+        /// <summary>
+        /// Attempt to load cached version of url and read the parsed xml documentation from it. Returns true if succesful, false otherwise.
+        /// </summary>
         static bool LoadDocumentationCache (string url) {
             var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url));
             if (!File.Exists (filename))
                 return false;
 
-            UnityEngine.Debug.Log ($"Loading cached {url} from {filename}");
+            //UnityEngine.Debug.Log ($"Loading cached {url} from {filename}");
 
             LoadXMLCache (filename);
             return true;
         }
 
+        /// <summary>
+        /// Parses xml documentation file and add/replace to documentation dictionary
+        /// </summary>
         static void LoadXMLCache (string filename) {
             using var xmlReader = XmlReader.Create (new StreamReader (new FileStream (filename, FileMode.Open)));
             while (xmlReader.Read ()) {
