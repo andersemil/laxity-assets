@@ -56,21 +56,12 @@ namespace AranciaAssets.EditorTools {
 		/// </summary>
         MethodInfo miGetEventParams;
 
-        string _eventMethodParameterTypes;
-        string EventMethodParameterTypes {
-            get {
-                if (string.IsNullOrEmpty (_eventMethodParameterTypes)) {
-                    var miFindMethod = m_DummyEvent.GetType ().GetMethod ("FindMethod", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type [] { typeof (string), typeof (Type), typeof (PersistentListenerMode), typeof (Type) }, null);
-                    var miEventMethod = miFindMethod.Invoke (m_DummyEvent, new object [] { "Invoke", m_DummyEvent.GetType (), PersistentListenerMode.EventDefined, null }) as MethodInfo;
-                    var typeFullNames = miEventMethod.GetParameters ().Select (x => x.ParameterType.FullName);
-                    _eventMethodParameterTypes = "(" + string.Join (',', typeFullNames) + ")";
-                    //Debug.Log ("EventMethodParameterTypes=" + _eventMethodParameterTypes);
-                }
-                return _eventMethodParameterTypes;
-            }
-        }
-
         static MethodInfo miGetFormattedMethodName;
+
+        /// <summary>
+        /// Arguments to supply to internal method "FindMethod"
+        /// </summary>
+        static readonly Type [] FindMethodArguments = new Type [] { typeof (string), typeof (Type), typeof (PersistentListenerMode), typeof (Type) };
 
         /// <summary>
         /// Toggle menu item path
@@ -202,18 +193,29 @@ namespace AranciaAssets.EditorTools {
                         //var mi = listenerTargetType.GetMethod (methodName.stringValue, BindingFlags.Instance | BindingFlags.Public/*, null, new Type [] { desiredType }, null*/);
                         var mi = listenerTargetType.GetMethods (BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public).FirstOrDefault (m => m.Name == methodName.stringValue);
                         if (mi != null) {
+                            if (mode == PersistentListenerMode.EventDefined) {
+                                var miFindMethod = m_DummyEvent.GetType ().GetMethod ("FindMethod", BindingFlags.Instance | BindingFlags.NonPublic, null, FindMethodArguments, null);
+                                var miEventMethod = miFindMethod.Invoke (m_DummyEvent, new object [] { "Invoke", m_DummyEvent.GetType (), PersistentListenerMode.EventDefined, null }) as MethodInfo;
+                                var argType = miEventMethod.GetParameters () [0].ParameterType;
+                                do {
+                                    xmlDoc = mi.GetDocumentation ($"({argType})");
+                                    if (!string.IsNullOrWhiteSpace (xmlDoc))
+                                        break;
+                                    argType = argType.BaseType;
+                                } while (argType != typeof (object));
+                            } else {
 #pragma warning disable 8524
-                            var argumentString = mode switch {
-                                PersistentListenerMode.Bool => "(System.Boolean)",
-                                PersistentListenerMode.Int => "(System.Int32)",
-                                PersistentListenerMode.Float => "(System.Single)",
-                                PersistentListenerMode.String => "(System.String)",
-                                PersistentListenerMode.Object => $"({desiredType})",
-                                PersistentListenerMode.EventDefined => EventMethodParameterTypes,
-                                PersistentListenerMode.Void => string.Empty,
+                                var argumentString = mode switch {
+                                    PersistentListenerMode.Bool => "(System.Boolean)",
+                                    PersistentListenerMode.Int => "(System.Int32)",
+                                    PersistentListenerMode.Float => "(System.Single)",
+                                    PersistentListenerMode.String => "(System.String)",
+                                    PersistentListenerMode.Object => $"({desiredType})",
+                                    _ => string.Empty,
 #pragma warning restore
-                            };
-                            xmlDoc = mi.GetDocumentation (argumentString);
+                                };
+                                xmlDoc = mi.GetDocumentation (argumentString);
+                            }
                         } else {
                             //Debug.Log ("Did not find MethodInfo for " + methodName.stringValue);
                         }
