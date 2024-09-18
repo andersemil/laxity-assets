@@ -361,6 +361,12 @@ namespace AranciaAssets.EditorTools {
 			instance.Focus ();
 		}
 
+		[MenuItem (itemName: "GameObject/Arancia/Find references", isValidateFunction: true, priority: 0)]
+		[MenuItem (itemName: "Assets/Arancia/Find references", isValidateFunction: true, priority: 0)]
+		static bool ValidateFindReferencesToSelectedObject () {
+			return Selection.activeObject != null && !(Selection.activeObject is DefaultAsset);
+		}
+
 		[MenuItem (itemName: "GameObject/Arancia/Find references", isValidateFunction: false, priority: 0)]
 		[MenuItem (itemName: "Assets/Arancia/Find references", isValidateFunction: false, priority: 0)]
 		static void FindReferencesToSelectedObject () {
