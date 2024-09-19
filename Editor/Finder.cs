@@ -320,13 +320,28 @@ namespace AranciaAssets.EditorTools {
 					for (int i = 0; i < editors.Length; i++) {
 						if ((result.activeEditorIndex != default && i == result.activeEditorIndex)
 							|| (result.activeEditorIndex == default && editors [i].targets.Any (t => t == result.obj))) {
+
+							// if property is a member of an array, expand it
+							var idxOfArray = result.propertyPath.LastIndexOf (']');
+							if (idxOfArray > 0) {
+								var propPath = result.propertyPath.Substring (0, idxOfArray + 1);
+								var arrayPath = result.propertyPath.Substring (0, propPath.IndexOf (".Array"));
+								var prop = editors [i].serializedObject.FindProperty (arrayPath);
+								prop.isExpanded = true;
+								prop = editors [i].serializedObject.FindProperty (propPath);
+								// if the array element has children then expand it
+								if (prop.hasChildren)
+									prop.isExpanded = true;
+								editors [i].Repaint ();
+							}
+
 							var root = InspectorWindow.rootVisualElement.Q (className: "unity-inspector-editors-list");
 							if (root != null && root.childCount > i) {
-								var child = root [i];
+								var child = root [i] [1];
 								if (ScrollToCoroutine != null) {
 									EditorCoroutineUtility.StopCoroutine (ScrollToCoroutine);
 								}
-								var highlightIdentifier = ResultsAreHighlighteable && !string.IsNullOrWhiteSpace (result.propertyPath) ? $"{result.fileID}.{result.propertyPath}" : null;
+								var highlightIdentifier = /*ResultsAreHighlighteable && */!string.IsNullOrWhiteSpace (result.propertyPath) ? $"{result.fileID}.{result.propertyPath}" : null;
 								ResultsAreHighlighteable = true;
 								ScrollToCoroutine = EditorCoroutineUtility.StartCoroutine (E_ScrollTo (child, highlightIdentifier), this);
 							}
