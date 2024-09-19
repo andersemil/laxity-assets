@@ -322,7 +322,7 @@ namespace AranciaAssets.EditorTools {
 							|| (result.activeEditorIndex == default && editors [i].targets.Any (t => t == result.obj))) {
 
 							// if property is a member of an array, expand it
-							var idxOfArray = result.propertyPath.LastIndexOf (']');
+							var idxOfArray = !string.IsNullOrEmpty (result.propertyPath) ? result.propertyPath.LastIndexOf (']') : -1;
 							if (idxOfArray > 0) {
 								var propPath = result.propertyPath.Substring (0, idxOfArray + 1);
 								var arrayPath = result.propertyPath.Substring (0, propPath.IndexOf (".Array"));
