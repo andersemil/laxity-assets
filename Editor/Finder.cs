@@ -104,8 +104,14 @@ namespace AranciaAssets.EditorTools {
 
 		void OnGUI () {
 			Event e = Event.current;
+			if (e.type == EventType.MouseDown && ComboBoxPopup.Instance != null) {
+				ComboBoxPopup.Instance.Close ();
+			}
 			if (ComboBoxPopup.Instance == null || !ComboBoxPopup.HandleEvent (e)) {
 				if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Return) {
+					if (ComboBoxPopup.Instance != null) {
+						ComboBoxPopup.Instance.Close ();
+					}
 					switch (GUI.GetNameOfFocusedControl ()) {
 					case "Method":
 						FindInvokationsOfMethod (MethodName);
@@ -152,7 +158,7 @@ namespace AranciaAssets.EditorTools {
 			if (Event.current.type == EventType.Repaint) {
 				MethodRect = GUILayoutUtility.GetLastRect ();
 			}
-			if (EditorGUI.EndChangeCheck () || (newFocus == "Method" && PrevFocusControl != newFocus)) {
+			if (EditorGUI.EndChangeCheck () || (e.type == EventType.MouseDown && newFocus == "Method" && PrevFocusControl != newFocus)) {
 				if (ListInvokations.Count == 0) {
 					FindAllInvokations ();
 				}
@@ -216,7 +222,7 @@ namespace AranciaAssets.EditorTools {
 			if (Event.current.type == EventType.Repaint) {
 				TextRect = GUILayoutUtility.GetLastRect ();
 			}
-			if (EditorGUI.EndChangeCheck () || (newFocus == "Text" && PrevFocusControl != newFocus)) {
+			if (EditorGUI.EndChangeCheck () || (e.type == EventType.MouseDown && newFocus == "Text" && PrevFocusControl != newFocus)) {
 				if (ListStrings.Count == 0) {
 					FindAllStrings ();
 				}

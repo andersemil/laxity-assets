@@ -47,8 +47,6 @@ namespace AranciaAssets.EditorTools {
 		Callback onSelect;
 
 		public static void Show (IEnumerable<string> values, Rect guiRect, Callback callback) {
-			if (values.Count () == 0)
-				return;
 			if (Instance == null) {
 				SolidTexture = new Texture2D (1, 1);
 				SolidTexture.SetPixel (0, 0, Color.gray);
