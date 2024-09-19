@@ -127,7 +127,7 @@ namespace AranciaAssets.EditorTools {
             if (!LoadedTypes.Contains (declaringType.FullName)) {
                 if (LoadXmlDocumentation (declaringType, key, out documentation))
                     return documentation;
-                UnityEngine.Debug.Log ($"Documentation not found, generating: {key}");
+                //UnityEngine.Debug.Log ($"Documentation not found, generating: {key}");
                 GenerateDocumentationForType (declaringType);
                 Documentation.TryGetValue (key, out documentation);
             }
@@ -203,10 +203,14 @@ namespace AranciaAssets.EditorTools {
                 return;
 
             var naivePath = ScriptPaths.FirstOrDefault (path => Path.GetFileName (path) == $"{type.Name}.cs");
-            if (naivePath != null && ScanForDocumentation (naivePath, type))
-                return;
+            if (naivePath != null) {
+                if (ScanForDocumentation (naivePath, type))
+                    return;
+                UnityEngine.Debug.Log ($"XMLDocumentation: Definition of {typeFullName} not found in {naivePath}, scanning whole directory ...");
+            } else {
+                UnityEngine.Debug.Log ($"XMLDocumentation: Naive search on filename {type.Name}.cs not found, scanning all scripts ...");
+            }
 
-            UnityEngine.Debug.Log ($"XMLDocumentation: Naive path for {typeFullName} not found, scanning whole directory ...");
             foreach (var filename in ScriptPaths) {
                 if (ScanForDocumentation (filename, type))
                     break;
@@ -335,7 +339,7 @@ namespace AranciaAssets.EditorTools {
                 return true;
 
             if (!AsyncDownloads.TryGetValue (url, out UnityWebRequestAsyncOperation asyncOp)) {
-                UnityEngine.Debug.Log ($"Scraping doc for {nameSpaceAndClass} from {url}");
+                //UnityEngine.Debug.Log ($"Scraping doc for {nameSpaceAndClass} from {url}");
                 var req = UnityWebRequest.Get (url);
                 asyncOp = req.SendWebRequest ();
                 AsyncDownloads.Add (url, asyncOp);
@@ -348,6 +352,7 @@ namespace AranciaAssets.EditorTools {
                 var result = asyncOp.webRequest.result != UnityWebRequest.Result.ProtocolError;
                 if (!result) {
                     UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
+                    LoadedTypes.Add (nameSpaceAndClass);
                 }
                 asyncOp.webRequest.Dispose ();
                 return result;
