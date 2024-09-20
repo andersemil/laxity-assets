@@ -147,7 +147,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Regex to match any class definition
 		/// </summary>
-        static readonly Regex ClassRegex = new ("(?:public|private|protected|internal)\\s+?((?:partial)\\s+?)?class\\s+(\\S+)\\s+(?::.*?)?{", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex ClassRegex = new ("(?:public|private|protected|internal)\\s+?((?:partial|sealed)\\s+?)?class\\s+(\\S+)\\s+(?::.*?)?{", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
 		/// Regex to match any documented property, field or method
