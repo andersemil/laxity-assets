@@ -189,11 +189,12 @@ namespace AranciaAssets.EditorTools {
 				}
 			}
 			using (new EditorGUI.DisabledScope (string.IsNullOrWhiteSpace (MethodName))) {
-				if (GUILayout.Button ("Find references", buttonMaxWidthOption)) {
+				var b = GUILayout.Button ("Find references", buttonMaxWidthOption);
+				EditorGUILayout.EndHorizontal ();
+				if (b) {
 					FindInvokationsOfMethod (MethodName);
 				}
 			}
-			EditorGUILayout.EndHorizontal ();
 
 #if !UNITY_2022_1_OR_NEWER
 			EditorGUILayout.BeginHorizontal ();
@@ -246,11 +247,12 @@ namespace AranciaAssets.EditorTools {
 				}
 			}
 			using (new EditorGUI.DisabledScope (string.IsNullOrEmpty (TextString))) {
-				if (GUILayout.Button ("Find string", buttonMaxWidthOption)) {
+				var b = GUILayout.Button ("Find string", buttonMaxWidthOption);
+				EditorGUILayout.EndHorizontal ();
+				if (b) {
 					FindString (TextString);
 				}
 			}
-			EditorGUILayout.EndHorizontal ();
 
 			EditorGUILayout.BeginHorizontal ();
 			EditorGUILayout.PrefixLabel (new GUIContent ("Missing references:", "Find all missing references in open scenes"));
