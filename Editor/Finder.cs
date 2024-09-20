@@ -1086,7 +1086,11 @@ namespace AranciaAssets.EditorTools {
 		}
 
 		static void ProcessAllLoadedMonoBehaviours () {
-			var mbs = UnityEngine.Object.FindObjectsOfType<MonoBehaviour> (true);
+#if UNITY_2022_3_OR_NEWER
+			var mbs = UnityEngine.Object.FindObjectsByType<MonoBehaviour> (FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+			var mbs = UnityEngine.Object.FindObjectsOfType<MonoBehaviour> ();
+#endif
 			foreach (var mb in mbs) {
 				if (mb == null)
 					continue;
