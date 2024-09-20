@@ -41,5 +41,5 @@ Simply choose the layer or tag from the dropdown in the Finder window and you wi
 If you import the tools in a Unity version before 2022, you will have the option to find all sprite assets in the project included in a specific atlas.
 
 
-### Quickly create SpriteAtlas (new Unity 2022+ asset type)
+### Quickly create new SpriteAtlas from context menu (new Unity asset type)
 Simply select all the sprites you would like to include in a SpriteAtlas asset, right-click and select Create SpriteAtlas. The new asset is automatically created and you can give it a name.
