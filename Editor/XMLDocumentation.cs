@@ -288,6 +288,11 @@ namespace AranciaAssets.EditorTools {
             case "string":
                 return "System.String";
             default:
+                var idxOfLt = typeName.LastIndexOf ('<');
+                if (idxOfLt > 0) {
+                    //Type is a generic, discard type parameters
+                    typeName = typeName.Substring (0, idxOfLt);
+                }
                 var splitTypeNames = typeName.Split ('.');
                 foreach (var asm in AppDomain.CurrentDomain.GetAssemblies ()) {
                     var t = asm.GetType (typeName);
