@@ -905,7 +905,7 @@ namespace AranciaAssets.EditorTools {
 	[CustomPropertyDrawer (typeof (LayerMask), true)]
 	public class CustomPropertyEditor : PropertyDrawer {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
-			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+			if (!property.propertyPath.Contains (".m_Calls.") && string.IsNullOrWhiteSpace (label.tooltip)) {
 				label.tooltip = property.GetDocumentation ();
 			}
 			EditorGUI.PropertyField (position, property, label);
@@ -920,7 +920,7 @@ namespace AranciaAssets.EditorTools {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			var identifier = $"{property.serializedObject.targetObject.GetInstanceID ()}.{property.propertyPath}";
 			Highlighter.HighlightIdentifier (position, identifier);
-			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+			if (!property.propertyPath.Contains (".m_Calls.") && string.IsNullOrWhiteSpace (label.tooltip)) {
 				label.tooltip = property.GetDocumentation ();
 			}
 			EditorGUI.PropertyField (position, property, label);
