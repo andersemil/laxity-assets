@@ -12,6 +12,8 @@
 
 Works for Unity packages as well as for custom scripts and plugins in the project!
 
+### Display XML comments as tooltips in Inspector
+If properties do not have a TooltipAttribute, but an XML comment or online documentation, that will be displayed as a tooltip. Works for any Unity package and custom scripts and plugins in the project!
 
 ### Match invokation method when dropping new listener target
 When you drop a new target object on a UnityEvent listener, we try to match the Component and method previously invoked. Normal UnityEventDrawer will just reset the listener. This makes it much easier to quickly replace listener targets.
@@ -26,7 +28,7 @@ The property will be highlighted exactly where the string or method invokation o
 
 
 ### Find references to any asset or object
-Right-clicking on any asset in the Project Window or the Scene Hierarchy and selecting 'Find references' will open the Finder window and list all references to it in the open scenes. If there is only one, it will immediately be highlighted on it's exact location in the Inspector.
+Right-clicking on any asset in the Project Window or the Scene Hierarchy and selecting 'Arancia / Find references' will open the Finder window and list all references to it in the open scenes. If there is only one, it will immediately be highlighted on it's exact location in the Inspector.
 
 
 ### Find missing references and missing scripts in open scenes
