@@ -461,7 +461,7 @@ namespace AranciaAssets.EditorTools {
 			Results.Clear ();
 			var allObjects = Resources.FindObjectsOfTypeAll (typeof (GameObject)) as GameObject [];
 			foreach (var obj in allObjects) {
-				if (obj.layer != layerIndex)
+				if (obj.layer != layerIndex || !obj.scene.isLoaded || EditorSceneManager.IsPreviewScene (obj.scene))
 					continue;
 				var parent = obj.transform.parent;
 				if (parent == null || parent.gameObject.layer != obj.layer)
@@ -476,7 +476,7 @@ namespace AranciaAssets.EditorTools {
 			Results.Clear ();
 			var allObjects = Resources.FindObjectsOfTypeAll (typeof (GameObject)) as GameObject [];
 			foreach (var obj in allObjects) {
-				if (obj.scene.isLoaded && obj.CompareTag (tag)) {
+				if (obj.CompareTag (tag) && obj.scene.isLoaded && !EditorSceneManager.IsPreviewScene (obj.scene)) {
 					AddResult (obj);
 				}
 			}
