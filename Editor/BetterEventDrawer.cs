@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -7,7 +6,6 @@ using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Pool;
 
 namespace AranciaAssets.EditorTools {
 
@@ -143,7 +141,6 @@ namespace AranciaAssets.EditorTools {
             if (fiPopupListMenu == null) {
                 var tPopupList = tUnityEventDrawer.GetNestedType ("PopupList", BindingFlags.NonPublic);
                 fiPopupListMenu = tPopupList?.GetField ("menu");
-                Debug.Log ($"tPopupList: {tPopupList != null} fiPopupListMenu: {fiPopupListMenu != null}");
             }
 
             fiListenersArray = tUnityEventDrawer.GetField ("m_ListenersArray", BindingFlags.NonPublic | BindingFlags.Instance);
