@@ -20,7 +20,6 @@ using Unity.EditorCoroutines.Editor;
 namespace AranciaAssets.EditorTools {
 
 	public class Finder : EditorWindow {
-		//Vector2 buildReportScrollPosition = Vector2.zero;
 		private int LayerIndex;
 		private string MethodName = string.Empty;
 		private string TagName = "Untagged";
@@ -40,7 +39,6 @@ namespace AranciaAssets.EditorTools {
 		private Vector2 resultScrollPosition;
 		private Rect ResultsScrollRect;
 		private static EditorCoroutine ScrollToCoroutine;
-		private static bool ResultsAreHighlighteable;
 		private static string PrevFocusControl;
 
 		static Finder instance;
@@ -61,7 +59,8 @@ namespace AranciaAssets.EditorTools {
 		readonly Type InspectorWindowType, PropertyEditorType;
 		EditorWindow InspectorWindow;
 		Rect MethodRect, TextRect;
-		Texture2D SolidBlackTexture;
+
+		const string kCallsPath = "m_PersistentCalls.m_Calls";
 
 		/*
 		/// <summary>
@@ -92,9 +91,6 @@ namespace AranciaAssets.EditorTools {
 				//GUILayout.Label (textures[0], new GUIStyle () {alignment = TextAnchor.UpperRight});
 				titleContent = new GUIContent ("Finder", icon, "Arancia Finder");
 			}
-			SolidBlackTexture = new Texture2D (1, 1);
-			SolidBlackTexture.SetPixel (0, 0, new Color32 (0x20, 0x70, 0xc0, 0xff));
-			SolidBlackTexture.Apply ();
 		}
 
 		void OnHierarchyChange () {
@@ -270,11 +266,11 @@ namespace AranciaAssets.EditorTools {
 
 			EditorGUILayout.Separator ();
 
-			var buttonHoverStyle = new GUIStyle (GUI.skin.button);
-			buttonHoverStyle.alignment = TextAnchor.MiddleLeft;
-			buttonHoverStyle.onHover.background = SolidBlackTexture;
-			buttonHoverStyle.hover.textColor = Color.cyan;
-			buttonHoverStyle.richText = true;
+            var buttonHoverStyle = new GUIStyle (GUI.skin.button) {
+                alignment = TextAnchor.MiddleLeft,
+                richText = true
+            };
+            buttonHoverStyle.hover.textColor = Color.cyan;
 
 			Result SelectedResult = null;
 			if (!string.IsNullOrWhiteSpace (ResultsLabel)) {
@@ -349,8 +345,7 @@ namespace AranciaAssets.EditorTools {
 								if (ScrollToCoroutine != null) {
 									EditorCoroutineUtility.StopCoroutine (ScrollToCoroutine);
 								}
-								var highlightIdentifier = /*ResultsAreHighlighteable && */!string.IsNullOrWhiteSpace (result.propertyPath) ? $"{result.fileID}.{result.propertyPath}" : null;
-								ResultsAreHighlighteable = true;
+								var highlightIdentifier = !string.IsNullOrWhiteSpace (result.propertyPath) ? $"{result.fileID}.{result.propertyPath}" : null;
 								ScrollToCoroutine = EditorCoroutineUtility.StartCoroutine (E_ScrollTo (child, highlightIdentifier), this);
 							}
 							break;
@@ -411,7 +406,7 @@ namespace AranciaAssets.EditorTools {
 				bool enterChildren;
 				do {
 					enterChildren = true;
-					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (BetterEventDrawer.kCallsPath)) != null) {
+					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (kCallsPath)) != null) {
 						var len = pCalls.arraySize;
 						for (int i = 0; i < len; i++) {
 							//Check if object is used as a target
@@ -445,7 +440,6 @@ namespace AranciaAssets.EditorTools {
 			} else {
 				ResultsLabel = $"Found {Results.Count} references to {AssetDatabase.GetAssetPath (activeObject)}.";
 			}
-			ResultsAreHighlighteable = activeObject is GameObject || activeObject is Transform;
 			if (Results.Count == 1) {
 				instance.ShowResult (Results [0]);
 			}
@@ -502,7 +496,7 @@ namespace AranciaAssets.EditorTools {
 				bool enterChildren;
 				do {
 					enterChildren = true;
-					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (BetterEventDrawer.kCallsPath)) != null) {
+					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (kCallsPath)) != null) {
 						var len = pCalls.arraySize;
 						for (int i = 0; i < len; i++) {
 							var pCall = pCalls.GetArrayElementAtIndex (i);
@@ -540,7 +534,7 @@ namespace AranciaAssets.EditorTools {
 				bool enterChildren;
 				do {
 					enterChildren = true;
-					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (BetterEventDrawer.kCallsPath)) != null) {
+					if (sp.propertyType == SerializedPropertyType.Generic && (pCalls = sp.FindPropertyRelative (kCallsPath)) != null) {
 						var len = pCalls.arraySize;
 						for (int i = 0; i < len; i++) {
 							var sv = pCalls.GetArrayElementAtIndex (i).FindPropertyRelative ("m_Arguments.m_StringArgument").stringValue;

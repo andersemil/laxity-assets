@@ -20,29 +20,28 @@ namespace AranciaAssets.EditorTools {
         private const string kNoFunctionString = "No Function";
 
         //Persistent Listener Paths
-        internal const string kInstancePath = "m_Target";
-        internal const string kInstanceTypePath = "m_TargetAssemblyTypeName";
-        internal const string kCallStatePath = "m_CallState";
-        internal const string kArgumentsPath = "m_Arguments";
-        internal const string kModePath = "m_Mode";
-        internal const string kMethodNamePath = "m_MethodName";
-        internal const string kCallsPath = "m_PersistentCalls.m_Calls";
+        const string kInstancePath = "m_Target";
+        const string kInstanceTypePath = "m_TargetAssemblyTypeName";
+        const string kCallStatePath = "m_CallState";
+        const string kArgumentsPath = "m_Arguments";
+        const string kModePath = "m_Mode";
+        const string kMethodNamePath = "m_MethodName";
 
         //ArgumentCache paths
-        internal const string kFloatArgument = "m_FloatArgument";
-        internal const string kIntArgument = "m_IntArgument";
-        internal const string kObjectArgument = "m_ObjectArgument";
-        internal const string kStringArgument = "m_StringArgument";
-        internal const string kBoolArgument = "m_BoolArgument";
-        internal const string kObjectArgumentAssemblyTypeName = "m_ObjectArgumentAssemblyTypeName";
+        const string kFloatArgument = "m_FloatArgument";
+        const string kIntArgument = "m_IntArgument";
+        const string kObjectArgument = "m_ObjectArgument";
+        const string kStringArgument = "m_StringArgument";
+        const string kBoolArgument = "m_BoolArgument";
+        const string kObjectArgumentAssemblyTypeName = "m_ObjectArgumentAssemblyTypeName";
 
-        private static readonly GUIContent s_MixedValueContent = EditorGUIUtility.TrTextContent ("\u2014", "Mixed Values");
+        static readonly GUIContent s_MixedValueContent = EditorGUIUtility.TrTextContent ("\u2014", "Mixed Values");
 
         GUIContent m_HeaderContent;
 
         FieldInfo fiListenersArray;
 
-        UnityEventBase m_DummyEvent {
+        UnityEventBase DummyEvent {
             get {
                 var tUnityEventDrawer = typeof (UnityEventDrawer);
                 return tUnityEventDrawer.GetField ("m_DummyEvent", BindingFlags.NonPublic | BindingFlags.Instance).GetValue (this) as UnityEventBase;
@@ -180,7 +179,7 @@ namespace AranciaAssets.EditorTools {
             var buttonLabel = new StringBuilder ();
             if (listenerTarget.objectReferenceValue == null || string.IsNullOrEmpty (methodName.stringValue)) {
                 buttonLabel.Append (kNoFunctionString);
-            } else if (!IsPersistantListenerValid (m_DummyEvent, methodName.stringValue, listenerTarget.objectReferenceValue, mode, desiredType)) {
+            } else if (!IsPersistantListenerValid (DummyEvent, methodName.stringValue, listenerTarget.objectReferenceValue, mode, desiredType)) {
                 var instanceString = "UnknownComponent";
                 var instance = listenerTarget.objectReferenceValue;
                 if (instance != null)
@@ -201,8 +200,8 @@ namespace AranciaAssets.EditorTools {
                         var mi = listenerTargetType.GetMethods (BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public).FirstOrDefault (m => m.Name == methodName.stringValue);
                         if (mi != null) {
                             if (mode == PersistentListenerMode.EventDefined) {
-                                var miFindMethod = m_DummyEvent.GetType ().GetMethod ("FindMethod", BindingFlags.Instance | BindingFlags.NonPublic, null, FindMethodArguments, null);
-                                var miEventMethod = miFindMethod.Invoke (m_DummyEvent, new object [] { "Invoke", m_DummyEvent.GetType (), PersistentListenerMode.EventDefined, null }) as MethodInfo;
+                                var miFindMethod = DummyEvent.GetType ().GetMethod ("FindMethod", BindingFlags.Instance | BindingFlags.NonPublic, null, FindMethodArguments, null);
+                                var miEventMethod = miFindMethod.Invoke (DummyEvent, new object [] { "Invoke", DummyEvent.GetType (), PersistentListenerMode.EventDefined, null }) as MethodInfo;
                                 var argType = miEventMethod.GetParameters () [0].ParameterType;
                                 do {
                                     xmlDoc = mi.GetDocumentation ($"({argType})");
@@ -279,7 +278,7 @@ namespace AranciaAssets.EditorTools {
                 if (string.IsNullOrWhiteSpace (tooltip)) {
                     tooltip = property.GetDocumentation ();
                 }
-                m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { m_DummyEvent }), icon, tooltip);
+                m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { DummyEvent }), icon, tooltip);
             }
         }
 
@@ -369,7 +368,7 @@ namespace AranciaAssets.EditorTools {
                 EditorGUI.BeginProperty (functionRect, GUIContent.none, methodName);
                 {
                     if (EditorGUI.DropdownButton (functionRect, functionContent, FocusType.Passive, EditorStyles.popup)) {
-                        var popupList = miBuildPopupList.Invoke (this, new object [] { listenerTarget.objectReferenceValue, m_DummyEvent, pListener });
+                        var popupList = miBuildPopupList.Invoke (this, new object [] { listenerTarget.objectReferenceValue, DummyEvent, pListener });
                         var menu = fiPopupListMenu != null ? ((GenericMenu)fiPopupListMenu.GetValue (popupList)) : (GenericMenu)popupList;
                         menu.DropDown (functionRect);
                     }

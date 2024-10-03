@@ -20,7 +20,7 @@ namespace AranciaAssets.EditorTools {
         internal static Dictionary<string, string> Documentation = new ();
 
         /// <summary>
-		/// List of scanned types so we don't do it over and over again
+		/// List of scanned types so we only scan once
 		/// </summary>
         internal static HashSet<string> LoadedTypes = new ();
 
@@ -157,6 +157,10 @@ namespace AranciaAssets.EditorTools {
 		/// Regex to match any documented property, field or method
 		/// </summary>
         static readonly Regex DocRegex = new ("\\/\\/\\/ <summary>(.*?)\\/\\/\\/ <\\/summary>\\s*?(?:\\[.+?\\])?\\s*?(?:\\s+(public|private|internal|protected)\\s+)?(?:static\\s+)?\\S+\\s+?(?:(\\S+)\\s*?\\((?:\\s*?(\\S+)\\s+)?.*?\\)\\s*?{.*?}|(\\S+)\\s*?;|(\\S+)\\s*?{.*?})", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        /// <summary>
+        /// Regex to filter newline structure of XML comment
+        /// </summary>
         static readonly Regex CommentNewlineRegex = new ("\\s+\\/\\/\\/ ", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
@@ -331,10 +335,24 @@ namespace AranciaAssets.EditorTools {
 		// --- Online doc scraping section ---
         //
 
+        /// <summary>
+        /// Regex to match member descriptions in Unity online Package documentation
+        /// </summary>
         static readonly Regex UnityPackageDocMemberRegex = new ("<h4 .+?data-uid=\"UnityEngine\\..+?\\..+?\\.(.+?)\">.+?<div class=\".*? summary.*?\">(.*?)<\\/div>", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        /// <summary>
+        /// Regex to match sections in Unity online documentation (Methods, Fields, Properties)
+        /// </summary>
         static readonly Regex UnityDocSectionRegex = new ("<h3.+?>(.+?)<\\/h3>", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        /// <summary>
+        /// Regex to match member descriptions in Unity online Scripting API documentation
+        /// </summary>
         static readonly Regex UnityEngineDocMemberRegex = new ("<td class=\"lbl\">.*?<a href=\".*?\">(.+?)<\\/a>.*?<td class=\"desc\">(.*?)<\\/td>", RegexOptions.Compiled | RegexOptions.Singleline);
 
+        /// <summary>
+        /// Dictionary of currently downloading URLs (url => asyncOp)
+        /// </summary>
         static readonly Dictionary<string, UnityWebRequestAsyncOperation> AsyncDownloads = new ();
 
 		/// <summary>
