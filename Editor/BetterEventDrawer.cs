@@ -57,6 +57,8 @@ namespace AranciaAssets.EditorTools {
         MethodInfo miGetEventParams;
 
         static MethodInfo miGetFormattedMethodName;
+        static MethodInfo miBuildPopupList;
+        static FieldInfo fiPopupListMenu;
 
         /// <summary>
         /// Arguments to supply to internal method "FindMethod"
@@ -134,6 +136,14 @@ namespace AranciaAssets.EditorTools {
 
             if (miGetFormattedMethodName == null) {
                 miGetFormattedMethodName = tUnityEventDrawer.GetMethod ("GetFormattedMethodName", BindingFlags.Static | BindingFlags.NonPublic);
+            }
+            if (miBuildPopupList == null) {
+                miBuildPopupList = tUnityEventDrawer.GetMethod ("BuildPopupList", BindingFlags.Static | BindingFlags.NonPublic);
+            }
+            if (fiPopupListMenu == null) {
+                var tPopupList = tUnityEventDrawer.GetNestedType ("PopupList", BindingFlags.NonPublic);
+                fiPopupListMenu = tPopupList?.GetField ("menu");
+                Debug.Log ($"tPopupList: {tPopupList != null} fiPopupListMenu: {fiPopupListMenu != null}");
             }
 
             fiListenersArray = tUnityEventDrawer.GetField ("m_ListenersArray", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -362,316 +372,14 @@ namespace AranciaAssets.EditorTools {
                 EditorGUI.BeginProperty (functionRect, GUIContent.none, methodName);
                 {
                     if (EditorGUI.DropdownButton (functionRect, functionContent, FocusType.Passive, EditorStyles.popup)) {
-                        var genericMenu = BuildPopupList (listenerTarget.objectReferenceValue, m_DummyEvent, pListener);
-                        genericMenu.DropDown (functionRect);
+                        var popupList = miBuildPopupList.Invoke (this, new object [] { listenerTarget.objectReferenceValue, m_DummyEvent, pListener });
+                        var menu = fiPopupListMenu != null ? ((GenericMenu)fiPopupListMenu.GetValue (popupList)) : (GenericMenu)popupList;
+                        menu.DropDown (functionRect);
                     }
                 }
                 EditorGUI.EndProperty ();
             }
             GUI.backgroundColor = c;
-        }
-
-
-        struct ValidMethodMap {
-            public UnityEngine.Object target;
-            public MethodInfo methodInfo;
-            public PersistentListenerMode mode;
-        }
-
-        static readonly Type BaseComponentType = typeof (Component);
-        static readonly Type ObsoleteType = typeof (ObsoleteAttribute);
-        static readonly Type VoidType = typeof (void);
-
-        /// <summary>
-		/// Filter out methods from base classes to clear up the mud.
-		/// </summary>
-        static IEnumerable<ValidMethodMap> CalculateMethodMap (UnityEngine.Object target, Type [] t, bool allowSubclasses) {
-            var validMethods = new List<ValidMethodMap> ();
-            if (target == null || t == null)
-                return validMethods;
-
-            // find the methods on the behaviour that match the signature
-            Type componentType = target.GetType ();
-            var componentMethods = componentType.GetMethods ().Where (x => /*!x.IsStatic && */!x.IsSpecialName && x.GetCustomAttributes (ObsoleteType, true).Length == 0 && x.ReturnType == VoidType).ToList ();
-
-            var wantedProperties = componentType.GetProperties ().AsEnumerable ()
-                .Where (x => x.DeclaringType != BaseComponentType && x.GetCustomAttributes (ObsoleteType, true).Length == 0 && x.GetSetMethod () != null);
-            componentMethods.AddRange (wantedProperties.Select (x => x.GetSetMethod ()));
-
-            foreach (var componentMethod in componentMethods) {
-                //Debug.Log ("Method: " + componentMethod);
-                // if the argument length is not the same, no match
-                var componentParameters = componentMethod.GetParameters ();
-                if (componentParameters.Length != t.Length)
-                    continue;
-
-                // if the argument types do not match, no match
-                bool parametersMatch = true;
-                for (int i = 0; i < t.Length; i++) {
-                    if (allowSubclasses && t [i].IsAssignableFrom (componentParameters [i].ParameterType))
-                        parametersMatch = true;
-                    else if (!componentParameters [i].ParameterType.IsAssignableFrom (t [i]))
-                        parametersMatch = false;
-                }
-
-                // valid method
-                if (parametersMatch) {
-                    var vmm = new ValidMethodMap {
-                        target = target,
-                        methodInfo = componentMethod
-                    };
-                    validMethods.Add (vmm);
-                }
-            }
-            return validMethods;
-        }
-
-
-        /// <summary>
-		/// Create popup menu with methods that can be invoked from the event
-		/// </summary>
-        internal static GenericMenu BuildPopupList (UnityEngine.Object target, UnityEventBase dummyEvent, SerializedProperty listener) {
-            //special case for components... we want all the game objects targets there!
-            var targetToUse = target;
-            if (targetToUse is Component)
-                targetToUse = (target as Component).gameObject;
-
-            // find the current event target...
-            var methodName = listener.FindPropertyRelative (kMethodNamePath);
-
-            var menu = new GenericMenu ();
-            menu.AddItem (new GUIContent (kNoFunctionString),
-                string.IsNullOrEmpty (methodName.stringValue),
-                ClearEventFunction,
-                new UnityEventFunction (listener, null, null, PersistentListenerMode.EventDefined));
-
-            if (targetToUse == null)
-                return menu;
-
-            menu.AddSeparator (string.Empty);
-
-            // figure out the signature of this delegate...
-            // The property at this stage points to the 'container' and has the field name
-            var delegateType = dummyEvent.GetType ();
-
-            // check out the signature of invoke as this is the callback!
-            var miDelegateMethod = delegateType.GetMethod ("Invoke");
-            var delegateArgumentsTypes = miDelegateMethod.GetParameters ().Select (x => x.ParameterType).ToArray ();
-
-            var duplicateNames = DictionaryPool<string, int>.Get ();
-            var duplicateFullNames = DictionaryPool<string, int>.Get ();
-
-            GeneratePopUpForType (menu, targetToUse, targetToUse.GetType ().Name, listener, delegateArgumentsTypes);
-            duplicateNames [targetToUse.GetType ().Name] = 0;
-            if (targetToUse is GameObject) {
-                Component [] comps = (targetToUse as GameObject).GetComponents<Component> ();
-
-                // Collect all the names and record how many times the same name is used.
-                foreach (var comp in comps) {
-                    if (comp == null)
-                        continue;
-
-                    if (duplicateNames.TryGetValue (comp.GetType ().Name, out int duplicateIndex))
-                        duplicateIndex++;
-                    duplicateNames [comp.GetType ().Name] = duplicateIndex;
-                }
-
-                foreach (var comp in comps) {
-                    if (comp == null)
-                        continue;
-
-                    var compType = comp.GetType ();
-                    string targetName = compType.Name;
-                    int duplicateIndex = 0;
-
-                    // Is this name used multiple times? If so then use the full name plus an index if there are also duplicates of this. (case 1309997)
-                    if (duplicateNames [compType.Name] > 0) {
-                        if (duplicateFullNames.TryGetValue (compType.FullName, out duplicateIndex))
-                            targetName = $"{compType.FullName} ({duplicateIndex})";
-                        else
-                            targetName = compType.FullName;
-                    }
-                    GeneratePopUpForType (menu, comp, targetName, listener, delegateArgumentsTypes);
-                    duplicateFullNames [compType.FullName] = duplicateIndex + 1;
-                }
-
-                DictionaryPool<string, int>.Release (duplicateNames);
-                DictionaryPool<string, int>.Release (duplicateFullNames);
-            }
-            return menu;
-        }
-
-        private static void GeneratePopUpForType (GenericMenu menu, UnityEngine.Object target, string targetName, SerializedProperty listener, Type [] delegateArgumentsTypes) {
-            var methods = new List<ValidMethodMap> ();
-            bool didAddDynamic = false;
-
-            // skip 'void' event defined on the GUI as we have a void prebuilt type!
-            if (delegateArgumentsTypes.Length != 0) {
-                GetMethodsForTargetAndMode (target, delegateArgumentsTypes, methods, PersistentListenerMode.EventDefined);
-                if (methods.Count > 0) {
-                    menu.AddDisabledItem (new GUIContent (targetName + "/Dynamic " + string.Join (", ", delegateArgumentsTypes.Select (e => GetTypeName (e)).ToArray ())));
-                    AddMethodsToMenu (menu, listener, methods, targetName);
-                    didAddDynamic = true;
-                }
-            }
-
-            methods.Clear ();
-            GetMethodsForTargetAndMode (target, new [] { typeof (float) }, methods, PersistentListenerMode.Float);
-            GetMethodsForTargetAndMode (target, new [] { typeof (int) }, methods, PersistentListenerMode.Int);
-            GetMethodsForTargetAndMode (target, new [] { typeof (string) }, methods, PersistentListenerMode.String);
-            GetMethodsForTargetAndMode (target, new [] { typeof (bool) }, methods, PersistentListenerMode.Bool);
-            GetMethodsForTargetAndMode (target, new [] { typeof (UnityEngine.Object) }, methods, PersistentListenerMode.Object);
-            GetMethodsForTargetAndMode (target, new Type [] { }, methods, PersistentListenerMode.Void);
-            if (methods.Count > 0) {
-                if (didAddDynamic)
-                    // AddSeperator doesn't seem to work for sub-menus, so we have to use this workaround instead of a proper separator for now.
-                    menu.AddItem (new GUIContent (targetName + "/ "), false, null);
-                if (delegateArgumentsTypes.Length != 0)
-                    menu.AddDisabledItem (new GUIContent (targetName + "/Static Parameters"));
-                AddMethodsToMenu (menu, listener, methods, targetName);
-            }
-        }
-
-        private static void AddMethodsToMenu (GenericMenu menu, SerializedProperty listener, List<ValidMethodMap> methods, string targetName) {
-            // Note: sorting by a bool in OrderBy doesn't seem to work for some reason, so using numbers explicitly.
-            var orderedMethods = methods.OrderBy (e => e.methodInfo.Name.StartsWith ("set_") ? 0 : 1).ThenBy (e => e.methodInfo.Name);
-            foreach (var validMethod in orderedMethods)
-                AddFunctionsForScript (menu, listener, validMethod, targetName);
-        }
-
-        private static void GetMethodsForTargetAndMode (UnityEngine.Object target, Type [] delegateArgumentsTypes, List<ValidMethodMap> methods, PersistentListenerMode mode) {
-            var newMethods = CalculateMethodMap (target, delegateArgumentsTypes, mode == PersistentListenerMode.Object);
-            foreach (var m in newMethods) {
-                var method = m;
-                method.mode = mode;
-                methods.Add (method);
-            }
-        }
-
-        static void AddFunctionsForScript (GenericMenu menu, SerializedProperty listener, ValidMethodMap method, string targetName) {
-            PersistentListenerMode mode = method.mode;
-
-            // find the current event target...
-            var listenerTarget = listener.FindPropertyRelative (kInstancePath).objectReferenceValue;
-            var methodName = listener.FindPropertyRelative (kMethodNamePath).stringValue;
-            var setMode = (PersistentListenerMode)listener.FindPropertyRelative (kModePath).enumValueIndex;
-            var typeName = listener.FindPropertyRelative (kArgumentsPath).FindPropertyRelative (kObjectArgumentAssemblyTypeName);
-
-            var args = new StringBuilder ();
-            var count = method.methodInfo.GetParameters ().Length;
-            for (int index = 0; index < count; index++) {
-                var methodArg = method.methodInfo.GetParameters () [index];
-                args.Append (string.Format ("{0}", GetTypeName (methodArg.ParameterType)));
-
-                if (index < count - 1)
-                    args.Append (", ");
-            }
-
-            var isCurrentlySet = listenerTarget == method.target
-                && methodName == method.methodInfo.Name
-                && mode == setMode;
-
-            if (isCurrentlySet && mode == PersistentListenerMode.Object && method.methodInfo.GetParameters ().Length == 1) {
-                isCurrentlySet &= (method.methodInfo.GetParameters () [0].ParameterType.AssemblyQualifiedName == typeName.stringValue);
-            }
-
-            string path = miGetFormattedMethodName.Invoke (null, new object [] { targetName, method.methodInfo.Name, args.ToString (), mode == PersistentListenerMode.EventDefined }) as string;
-            menu.AddItem (new GUIContent (path),
-                isCurrentlySet,
-                SetEventFunction,
-                new UnityEventFunction (listener, method.target, method.methodInfo, mode));
-        }
-
-        static string GetTypeName (Type t) {
-            if (t == typeof (int))
-                return "int";
-            if (t == typeof (float))
-                return "float";
-            if (t == typeof (string))
-                return "string";
-            if (t == typeof (bool))
-                return "bool";
-            return t.Name;
-        }
-
-        static void SetEventFunction (object source) {
-            ((UnityEventFunction)source).Assign ();
-        }
-
-        static void ClearEventFunction (object source) {
-            ((UnityEventFunction)source).Clear ();
-        }
-
-        struct UnityEventFunction {
-            readonly SerializedProperty m_Listener;
-            readonly UnityEngine.Object m_Target;
-            readonly MethodInfo m_Method;
-            readonly PersistentListenerMode m_Mode;
-
-            public UnityEventFunction (SerializedProperty listener, UnityEngine.Object target, MethodInfo method, PersistentListenerMode mode) {
-                m_Listener = listener;
-                m_Target = target;
-                m_Method = method;
-                m_Mode = mode;
-            }
-
-            public void Assign () {
-                // find the current event target...
-                var listenerTarget = m_Listener.FindPropertyRelative (kInstancePath);
-                var listenerTargetType = m_Listener.FindPropertyRelative (kInstanceTypePath);
-                var methodName = m_Listener.FindPropertyRelative (kMethodNamePath);
-                var mode = m_Listener.FindPropertyRelative (kModePath);
-                var arguments = m_Listener.FindPropertyRelative (kArgumentsPath);
-
-                listenerTarget.objectReferenceValue = m_Target;
-                listenerTargetType.stringValue = m_Method.DeclaringType.AssemblyQualifiedName;
-                methodName.stringValue = m_Method.Name;
-                mode.enumValueIndex = (int)m_Mode;
-
-                if (m_Mode == PersistentListenerMode.Object) {
-                    var fullArgumentType = arguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName);
-                    var argParams = m_Method.GetParameters ();
-                    var tUnityObject = typeof (UnityEngine.Object);
-                    if (argParams.Length == 1 && tUnityObject.IsAssignableFrom (argParams [0].ParameterType))
-                        fullArgumentType.stringValue = argParams [0].ParameterType.AssemblyQualifiedName;
-                    else
-                        fullArgumentType.stringValue = tUnityObject.AssemblyQualifiedName;
-                }
-
-                ValidateObjectParamater (arguments, m_Mode);
-
-                m_Listener.serializedObject.ApplyModifiedProperties ();
-            }
-
-            private void ValidateObjectParamater (SerializedProperty arguments, PersistentListenerMode mode) {
-                var fullArgumentType = arguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName);
-                var argument = arguments.FindPropertyRelative (kObjectArgument);
-                var argumentObj = argument.objectReferenceValue;
-
-                if (mode != PersistentListenerMode.Object) {
-                    fullArgumentType.stringValue = typeof (UnityEngine.Object).AssemblyQualifiedName;
-                    argument.objectReferenceValue = null;
-                    return;
-                }
-
-                if (argumentObj == null)
-                    return;
-
-                var t = Type.GetType (fullArgumentType.stringValue, false);
-                if (!typeof (UnityEngine.Object).IsAssignableFrom (t) || !t.IsInstanceOfType (argumentObj))
-                    argument.objectReferenceValue = null;
-            }
-
-            public void Clear () {
-                // find the current event target...
-                var methodName = m_Listener.FindPropertyRelative (kMethodNamePath);
-                methodName.stringValue = null;
-
-                var mode = m_Listener.FindPropertyRelative (kModePath);
-                mode.enumValueIndex = (int)PersistentListenerMode.Void;
-
-                m_Listener.serializedObject.ApplyModifiedProperties ();
-            }
         }
     }
 
