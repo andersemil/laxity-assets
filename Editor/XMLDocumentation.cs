@@ -114,8 +114,12 @@ namespace AranciaAssets.EditorTools {
             if (propName.StartsWith ("m_")) {
                 propName = char.ToLower (propName [2]) + propName [3..];
             }
-            var key = "P:" + XmlDocumentationKeyHelper (declaringType.FullName, propName);
-            return GetDocumentation (declaringType, key);
+            var key = XmlDocumentationKeyHelper (declaringType.FullName, propName);
+            var doc = GetDocumentation (declaringType, "F:" + key);
+            if (string.IsNullOrWhiteSpace (doc)) {
+                doc = GetDocumentation (declaringType, "P:" + key);
+            }
+            return doc;
         }
 
         /// <summary>
@@ -152,8 +156,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Regex to match any documented property, field or method
 		/// </summary>
-        static readonly Regex DocRegex = new ("\\/\\/\\/ <summary>(.*?)\\/\\/\\/ <\\/summary>.*?(?:(public|private|protected|internal)\\s+)?(?:(?:static\\s+)?\\S+\\s+(\\S+)\\s+\\(\\s*(?:(\\S+)\\s+\\S+)?\\s*\\)|(\\S+)\\s*?;|\\S+\\s+(\\S+)\\s+?{.*?})", RegexOptions.Compiled | RegexOptions.Singleline);
-
+        static readonly Regex DocRegex = new ("\\/\\/\\/ <summary>(.*?)\\/\\/\\/ <\\/summary>\\s*?(?:\\[.+?\\])?\\s*?(?:\\s+(public|private|internal|protected)\\s+)?(?:static\\s+)?\\S+\\s+?(?:(\\S+)\\s*?\\((?:\\s*?(\\S+)\\s+)?.*?\\)\\s*?{.*?}|(\\S+)\\s*?;|(\\S+)\\s*?{.*?})", RegexOptions.Compiled | RegexOptions.Singleline);
         static readonly Regex CommentNewlineRegex = new ("\\s+\\/\\/\\/ ", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
@@ -247,11 +250,11 @@ namespace AranciaAssets.EditorTools {
             //Debug.Log ($"{type.FullName} found in {filename}, scanning for documentation");
             string key;
             foreach (Match mi in DocRegex.Matches (srcFile)) {
-                //Ignore non-public documented members
-                if (!mi.Groups [2].Success || mi.Groups [2].Value != "public")
-                    continue;
                 var xmlComment = CommentNewlineRegex.Replace (mi.Groups [1].Value, " ").Trim ();
                 if (mi.Groups [3].Success) {
+                    //Ignore non-public documented methods
+                    if (!mi.Groups [2].Success || mi.Groups [2].Value != "public")
+                        continue;
                     key = $"M:{nameSpaceAndClass}{mi.Groups [3].Value}";
                     if (mi.Groups [4].Success)
                         key += $"({ClassifyType (nameSpaceAndClass, usingNamespaces, mi.Groups [4].Value)})";
