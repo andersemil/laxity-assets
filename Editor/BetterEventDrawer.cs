@@ -39,23 +39,16 @@ namespace AranciaAssets.EditorTools {
 
         GUIContent m_HeaderContent;
 
-        FieldInfo fiListenersArray;
+        UnityEventBase DummyEvent { get { return fiDummyEvent.GetValue (this) as UnityEventBase; } }
+        object PopupList;
 
-        UnityEventBase DummyEvent {
-            get {
-                var tUnityEventDrawer = typeof (UnityEventDrawer);
-                return tUnityEventDrawer.GetField ("m_DummyEvent", BindingFlags.NonPublic | BindingFlags.Instance).GetValue (this) as UnityEventBase;
-            }
-        }
-
-        /// <summary>
-		/// Internal Unity method for building a string description of the parameters for a UnityEvent, eg ' (GameObject)'
-		/// </summary>
-        MethodInfo miGetEventParams;
-
-        static MethodInfo miGetFormattedMethodName;
+        static bool reflectionInitialized;
+        static MethodInfo miGetEventParams;
         static MethodInfo miBuildPopupList;
         static FieldInfo fiPopupListMenu;
+        static FieldInfo fiPopupListApplyAction;
+        static FieldInfo fiListenersArray;
+        static FieldInfo fiDummyEvent;
 
         /// <summary>
         /// Arguments to supply to internal method "FindMethod"
@@ -128,21 +121,17 @@ namespace AranciaAssets.EditorTools {
                 list.elementHeight = (EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing);
             }
 
-            var tUnityEventDrawer = typeof (UnityEventDrawer);
-            miGetEventParams = tUnityEventDrawer.GetMethod ("GetEventParams", BindingFlags.NonPublic | BindingFlags.Static);
-
-            if (miGetFormattedMethodName == null) {
-                miGetFormattedMethodName = tUnityEventDrawer.GetMethod ("GetFormattedMethodName", BindingFlags.Static | BindingFlags.NonPublic);
-            }
-            if (miBuildPopupList == null) {
+            if (!reflectionInitialized) {
+                reflectionInitialized = true;
+                var tUnityEventDrawer = typeof (UnityEventDrawer);
+                miGetEventParams = tUnityEventDrawer.GetMethod ("GetEventParams", BindingFlags.NonPublic | BindingFlags.Static);
                 miBuildPopupList = tUnityEventDrawer.GetMethod ("BuildPopupList", BindingFlags.Static | BindingFlags.NonPublic);
-            }
-            if (fiPopupListMenu == null) {
                 var tPopupList = tUnityEventDrawer.GetNestedType ("PopupList", BindingFlags.NonPublic);
                 fiPopupListMenu = tPopupList?.GetField ("menu");
+                fiPopupListApplyAction = tPopupList?.GetField ("applyItemSelectedAction");
+                fiListenersArray = tUnityEventDrawer.GetField ("m_ListenersArray", BindingFlags.NonPublic | BindingFlags.Instance);
+                fiDummyEvent = tUnityEventDrawer.GetField ("m_DummyEvent", BindingFlags.NonPublic | BindingFlags.Instance);
             }
-
-            fiListenersArray = tUnityEventDrawer.GetField ("m_ListenersArray", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
         private SerializedProperty GetArgument (SerializedProperty pListener) {
@@ -367,10 +356,24 @@ namespace AranciaAssets.EditorTools {
             using (new EditorGUI.DisabledScope (listenerTarget.objectReferenceValue == null)) {
                 EditorGUI.BeginProperty (functionRect, GUIContent.none, methodName);
                 {
+                    var eventType = Event.current.type;
                     if (EditorGUI.DropdownButton (functionRect, functionContent, FocusType.Passive, EditorStyles.popup)) {
-                        var popupList = miBuildPopupList.Invoke (this, new object [] { listenerTarget.objectReferenceValue, DummyEvent, pListener });
-                        var menu = fiPopupListMenu != null ? ((GenericMenu)fiPopupListMenu.GetValue (popupList)) : (GenericMenu)popupList;
+                        var list = miBuildPopupList.Invoke (this, new object [] { listenerTarget.objectReferenceValue, DummyEvent, pListener });
+                        GenericMenu menu;
+                        if (fiPopupListMenu != null) {
+                            PopupList = list;
+                            menu = (GenericMenu)fiPopupListMenu.GetValue (PopupList);
+                        } else {
+                            menu = (GenericMenu)list;
+                        }
                         menu.DropDown (functionRect);
+                    }
+                    if (PopupList != null && eventType != EventType.Layout) {
+                        var action = fiPopupListApplyAction.GetValue (PopupList);
+                        if (action != null) {
+                            ((Action)action).Invoke ();
+                            fiPopupListApplyAction.SetValue (PopupList, null);
+                        }
                     }
                 }
                 EditorGUI.EndProperty ();
