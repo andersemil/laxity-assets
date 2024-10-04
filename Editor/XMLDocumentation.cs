@@ -141,17 +141,17 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Regex to match any using statement
 		/// </summary>
-        static readonly Regex UsingRegex = new ("using\\s+(\\S+);", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UsingRegex = new (@"using\s+(\S+);", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
 		/// Regex to match any namespace definition
 		/// </summary>
-        static readonly Regex NamespaceRegex = new ("namespace\\s+(\\S+)\\s*{", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex NamespaceRegex = new (@"namespace\s+(\S+)\s*{", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
 		/// Regex to match any class definition
 		/// </summary>
-        static readonly Regex ClassRegex = new ("(?:public|private|protected|internal)\\s+?((?:partial|sealed)\\s+?)?class\\s+(\\S+)\\s+(?::.*?)?{", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex ClassRegex = new (@"(?:public|private|protected|internal)\s+?((?:partial|sealed)\s+?)?class\s+(\S+)\s+(?::.*?)?{", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
 		/// Regex to match any documented property, field or method
@@ -161,7 +161,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Regex to filter newline structure of XML comment
         /// </summary>
-        static readonly Regex CommentNewlineRegex = new ("\\s+\\/\\/\\/ ", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex CommentNewlineRegex = new (@"\s+\/\/\/ ", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
 		/// Paths of all scripts in the AssetDatabase, including packages, populated in the LoadScriptPaths method
@@ -338,17 +338,17 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Regex to match member descriptions in Unity online Package documentation
         /// </summary>
-        static readonly Regex UnityPackageDocMemberRegex = new ("<h4 .+?data-uid=\"UnityEngine\\..+?\\..+?\\.(.+?)\">.+?<div class=\".*? summary.*?\">(.*?)<\\/div>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityPackageDocMemberRegex = new (@"<h4 .+?data-uid=""UnityEngine\..+?\..+?\.(.+?)"">.+?<div class="".*? summary.*?"">(.*?)<\/div>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to match sections in Unity online documentation (Methods, Fields, Properties)
         /// </summary>
-        static readonly Regex UnityDocSectionRegex = new ("<h3.+?>(.+?)<\\/h3>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityDocSectionRegex = new (@"<h3.+?>(.+?)<\/h3>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to match member descriptions in Unity online Scripting API documentation
         /// </summary>
-        static readonly Regex UnityEngineDocMemberRegex = new ("<td class=\"lbl\">.*?<a href=\".*?\">(.+?)<\\/a>.*?<td class=\"desc\">(.*?)<\\/td>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityEngineDocMemberRegex = new (@"<td class=""lbl"">.*?<a href="".*?"">(.+?)<\/a>.*?<td class=""desc"">(.*?)<\/td>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Dictionary of currently downloading URLs (url => asyncOp)
