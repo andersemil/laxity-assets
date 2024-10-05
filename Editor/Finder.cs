@@ -60,7 +60,7 @@ namespace AranciaAssets.EditorTools {
 		EditorWindow InspectorWindow;
 		Rect MethodRect, TextRect;
 
-		const string kCallsPath = "m_PersistentCalls.m_Calls";
+		internal const string kCallsPath = "m_PersistentCalls.m_Calls";
 
 		/*
 		/// <summary>
@@ -899,7 +899,7 @@ namespace AranciaAssets.EditorTools {
 	[CustomPropertyDrawer (typeof (LayerMask), true)]
 	public class CustomPropertyEditor : PropertyDrawer {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
-			if (!property.propertyPath.Contains (".m_Calls.") && string.IsNullOrWhiteSpace (label.tooltip)) {
+			if (!property.propertyPath.Contains (Finder.kCallsPath) && string.IsNullOrWhiteSpace (label.tooltip)) {
 				label.tooltip = property.GetDocumentation ();
 			}
 			EditorGUI.PropertyField (position, property, label);
@@ -914,7 +914,7 @@ namespace AranciaAssets.EditorTools {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			var identifier = $"{property.serializedObject.targetObject.GetInstanceID ()}.{property.propertyPath}";
 			Highlighter.HighlightIdentifier (position, identifier);
-			if (!property.propertyPath.Contains (".m_Calls.") && string.IsNullOrWhiteSpace (label.tooltip)) {
+			if (!property.propertyPath.Contains (Finder.kCallsPath) && string.IsNullOrWhiteSpace (label.tooltip)) {
 				label.tooltip = property.GetDocumentation ();
 			}
 			EditorGUI.PropertyField (position, property, label);
@@ -929,7 +929,7 @@ namespace AranciaAssets.EditorTools {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			var identifier = $"{property.serializedObject.targetObject.GetInstanceID ()}.{property.propertyPath}";
 			Highlighter.HighlightIdentifier (position, identifier);
-			if (string.IsNullOrWhiteSpace (label.tooltip)) {
+			if (!property.propertyPath.Contains (Finder.kCallsPath) && string.IsNullOrWhiteSpace (label.tooltip)) {
 				label.tooltip = property.GetDocumentation ();
 			}
 			EditorGUI.PropertyField (position, property, label);
