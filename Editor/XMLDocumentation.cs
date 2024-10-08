@@ -185,9 +185,7 @@ namespace AranciaAssets.EditorTools {
         static void GenerateDocumentationForType (Type type) {
             var typeFullName = type.FullName;
             if (typeFullName.StartsWith ("UnityEngine.")) {
-                if (
-                    type.Namespace == "UnityEngine.UI"
-                    || type.Namespace == "UnityEngine.EventSystems"
+                if (type.Namespace == "UnityEngine.EventSystems"
                  //|| type.Namespace == "UnityEngine.Experimental.Rendering.Universal"
                  //|| type.Namespace == "UnityEngine.Rendering.Universal"
                  ) {
@@ -198,7 +196,7 @@ namespace AranciaAssets.EditorTools {
                     //Scrape built-in package documentation
                     //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
                     var typeName = type.FullName.Replace ("UnityEngine.", string.Empty);
-                    var docVersionString = UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
+                    var docVersionString = typeName.StartsWith ("UI.") ? "2019.1" : UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/{docVersionString}/Documentation/ScriptReference/{typeName}.html", typeFullName, UnityEngineDocMemberRegex);
                 }
                 return;
@@ -343,7 +341,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Regex to match sections in Unity online documentation (Methods, Fields, Properties)
         /// </summary>
-        static readonly Regex UnityDocSectionRegex = new (@"<h3.+?>(.+?)<\/h3>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityDocSectionRegex = new (@"<h\d.*?>(.+?)<\/h\d>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to match member descriptions in Unity online Scripting API documentation
