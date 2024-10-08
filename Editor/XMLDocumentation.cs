@@ -384,10 +384,9 @@ namespace AranciaAssets.EditorTools {
             var doc = asyncOp.webRequest.downloadHandler.text;
             asyncOp.webRequest.Dispose ();
 
+            var d = new Dictionary<string, string> ();
+
             Match prevMatch = null;
-            string propertiesSection = null;
-            string fieldsSection = null;
-            string methodsSection = null;
             foreach (Match mi in UnityDocSectionRegex.Matches (doc)) {
                 if (mi.Success) {
                     if (prevMatch != null) {
@@ -395,33 +394,22 @@ namespace AranciaAssets.EditorTools {
                         var section = doc.Substring (sectionStartIndex, mi.Index - sectionStartIndex);
                         var sectionHeader = prevMatch.Groups [1].Value.Trim ();
                         //UnityEngine.Debug.Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
+
                         switch (sectionHeader) {
                         case "Methods":
                         case "Public Methods":
-                            methodsSection = section;
+                            ScrapeUnityDocSection (d, $"M:{nameSpaceAndClass}", section, memberRegex);
                             break;
                         case "Fields":
-                            fieldsSection = section;
+                            ScrapeUnityDocSection (d, $"F:{nameSpaceAndClass}", section, memberRegex);
                             break;
                         case "Properties":
-                            propertiesSection = section;
+                            ScrapeUnityDocSection (d, $"P:{nameSpaceAndClass}", section, memberRegex);
                             break;
                         }
                     }
                     prevMatch = mi;
                 }
-            }
-
-            var d = new Dictionary<string, string> ();
-
-            if (!string.IsNullOrWhiteSpace (methodsSection)) {
-                ScrapeUnityDocSection (d, $"M:{nameSpaceAndClass}", methodsSection, memberRegex);
-            }
-            if (!string.IsNullOrWhiteSpace (fieldsSection)) {
-                ScrapeUnityDocSection (d, $"F:{nameSpaceAndClass}", fieldsSection, memberRegex);
-            }
-            if (!string.IsNullOrWhiteSpace (propertiesSection)) {
-                ScrapeUnityDocSection (d, $"P:{nameSpaceAndClass}", propertiesSection, memberRegex);
             }
 
             UpdateDocumentationCache (url, d);
