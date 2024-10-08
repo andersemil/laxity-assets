@@ -813,9 +813,10 @@ namespace AranciaAssets.EditorTools {
 	}
 
 	static class ExtensionMethods {
-		static void AppendParentName (ref StringBuilder sb, Transform t, char separator) {
-			if (t.parent != null) {
-				AppendParentName (ref sb, t.parent, separator);
+		static void AppendParentName (StringBuilder sb, Transform t, char separator) {
+			var parent = t.parent;
+			if (parent != null) {
+				AppendParentName (sb, parent, separator);
 			}
 			sb.Append (separator);
 			sb.Append (t.name);
@@ -827,7 +828,7 @@ namespace AranciaAssets.EditorTools {
 		public static string GetScenePath (this GameObject obj, char separator = '/') {
 			var sb = new StringBuilder ();
 			sb.Append (obj.scene.name);
-			AppendParentName (ref sb, obj.transform, separator);
+			AppendParentName (sb, obj.transform, separator);
 			return sb.ToString ();
 		}
 
@@ -837,7 +838,7 @@ namespace AranciaAssets.EditorTools {
 		public static string GetScenePath (this Component comp, char separator = '/') {
 			var sb = new StringBuilder ();
 			sb.Append (comp.gameObject.scene.name);
-			AppendParentName (ref sb, comp.transform, separator);
+			AppendParentName (sb, comp.transform, separator);
 			return sb.ToString ();
 		}
 
@@ -897,6 +898,7 @@ namespace AranciaAssets.EditorTools {
 	[CustomPropertyDrawer (typeof (int), true)]
 	[CustomPropertyDrawer (typeof (Enum), true)]
 	[CustomPropertyDrawer (typeof (LayerMask), true)]
+	[CustomPropertyDrawer (typeof (Color), true)]
 	public class CustomPropertyEditor : PropertyDrawer {
 		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
 			if (!property.propertyPath.Contains (Finder.kCallsPath) && string.IsNullOrWhiteSpace (label.tooltip)) {
