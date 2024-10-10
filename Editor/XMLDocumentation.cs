@@ -156,7 +156,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Regex to match any documented property, field or method
 		/// </summary>
-        static readonly Regex DocRegex = new (@"\/\/\/ <summary>((?:\n\s*?\/\/\/[^\n]*?)*?)\s*?\/\/\/ <\/summary>\s*?(?:\[[^\]]+?\]\s*?)*?\s*?(?:\s+(public|private|internal|protected)\s+)?(?:static\s+)?\S+\s+?(?:(\S+)\s*?\((?:\s*?(\S+)\s+)?.*?\)\s*?{.*?}|(\S+)\s*?;|(\S+)\s*?{.*?})", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex DocRegex = new (@"\/\/\/ <summary>((?:\n\s*?\/\/\/[^\n]*?)*?)\s*?\/\/\/ <\/summary>\s*?(?:\[[^\]]+?\]\s*?)*?\s*?(?:\s+(public|private|internal|protected)\s+)?(?:static\s+)?\S+\s+?(?:(\S+)\s*?\((?:\s*?([\w\.]+)\s+)?.*?\)\s*?{.*?}|(\S+)\s*?;|(\S+)\s*?{.*?})", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to filter newline structure of XML comment
