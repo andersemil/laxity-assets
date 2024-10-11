@@ -238,9 +238,10 @@ namespace AranciaAssets.EditorTools {
 
             var usingNamespaces = UsingRegex.Matches (srcFile).Select (mi => mi.Groups [1].Value);
 
-            var className = ClassRegex.Matches (srcFile).Select (mi => mi.Groups [1].Value).FirstOrDefault (s => s == type.Name);
-            if (string.IsNullOrWhiteSpace (className))
+            var className = ClassRegex.Matches (srcFile).Select (mi => mi.Groups [2].Value).FirstOrDefault (s => s == type.Name);
+            if (string.IsNullOrWhiteSpace (className)) {
                 return false;
+            }
 
             var nameSpaceAndClass = !string.IsNullOrWhiteSpace (nameSpace) ? $"{nameSpace}.{className}" : className;
             if (type.FullName != nameSpaceAndClass) {
