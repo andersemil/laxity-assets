@@ -459,10 +459,10 @@ namespace AranciaAssets.EditorTools {
         /// Update cached xml documentation file with new keys
         /// </summary>
         static void UpdateDocumentationCache (string url, IDictionary<string, string> dict) {
-            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url));
+            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url) + ".xml");
             using var fs = new FileStream (filename, FileMode.Create);
             using var sw = new StreamWriter (fs);
-            sw.Write ("<?xml version=\"1.0\"?>\n<doc>\n\t<members>\n");
+            sw.Write ($"<?xml version=\"1.0\"?>\n<doc>\n\t<!-- scraped from {url} -->\n\t<members>\n");
             var en = dict.GetEnumerator ();
             while (en.MoveNext ()) {
                 sw.Write ("\t\t<member name=\"" + en.Current.Key);
@@ -478,7 +478,7 @@ namespace AranciaAssets.EditorTools {
         /// Attempt to load cached version of url and read the parsed xml documentation from it. Returns true if succesful, false otherwise.
         /// </summary>
         static bool LoadDocumentationCache (string url) {
-            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url));
+            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url) + ".xml");
             if (!File.Exists (filename))
                 return false;
 
