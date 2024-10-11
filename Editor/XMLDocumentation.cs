@@ -342,7 +342,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Regex to match sections in Unity online documentation (Methods, Fields, Properties)
         /// </summary>
-        static readonly Regex UnityDocSectionRegex = new (@"<h\d.*?>(.+?)<\/h\d>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityDocSectionRegex = new (@"<h\d(?:\sid=""\w+?"")?>\s*?(?:(Properties|Methods|Fields))\s*?<\/h\d>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to match member descriptions in Unity online Scripting API documentation
@@ -419,7 +419,7 @@ namespace AranciaAssets.EditorTools {
 
             var en = d.GetEnumerator ();
             while (en.MoveNext ())
-                Documentation.Add (en.Current.Key, en.Current.Value);
+                Documentation [en.Current.Key] = en.Current.Value;
 
             LoadedTypes.Add (nameSpaceAndClass);
             return true;
