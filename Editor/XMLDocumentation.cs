@@ -359,8 +359,10 @@ namespace AranciaAssets.EditorTools {
         /// Returns <c>true</c> if the documentation is or may become available from the specified url.
 		/// </summary>
 		static bool ScrapeUnityDocumentation (string url, string nameSpaceAndClass, Regex memberRegex) {
-            if (LoadDocumentationCache (url))
+            if (LoadDocumentationCache (url)) {
+                LoadedTypes.Add (nameSpaceAndClass);
                 return true;
+            }
 
             if (!AsyncDownloads.TryGetValue (url, out UnityWebRequestAsyncOperation asyncOp)) {
                 //UnityEngine.Debug.Log ($"Scraping doc for {nameSpaceAndClass} from {url}");
