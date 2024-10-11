@@ -340,9 +340,9 @@ namespace AranciaAssets.EditorTools {
         static readonly Regex UnityPackageDocMemberRegex = new (@"<h4 .+?data-uid=""UnityEngine\..+?\..+?\.(.+?)"">.+?<div class="".*? summary.*?"">(.*?)<\/div>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
-        /// Regex to match sections in Unity online documentation (Methods, Fields, Properties)
+        /// Regex to match sections in Unity online documentation (methods, fields and properties)
         /// </summary>
-        static readonly Regex UnityDocSectionRegex = new (@"<h\d(?:\sid=""\w+?"")?>\s*?(?:(Properties|Methods|Fields))\s*?<\/h\d>", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex UnityDocSectionRegex = new (@"<h\d(?:\sid=""\w+?"")?>\s*?(?:(Properties|Public Methods|Methods|Fields))\s*?<\/h\d>", RegexOptions.Compiled | RegexOptions.Singleline);
 
         /// <summary>
         /// Regex to match member descriptions in Unity online Scripting API documentation
@@ -394,25 +394,21 @@ namespace AranciaAssets.EditorTools {
                 if (mi.Success) {
                     if (prevMatch != null) {
                         var sectionStartIndex = prevMatch.Index + prevMatch.Length;
-                        var section = doc.Substring (sectionStartIndex, mi.Index - sectionStartIndex);
+                        var section = doc [sectionStartIndex..mi.Index];
                         var sectionHeader = prevMatch.Groups [1].Value.Trim ();
                         //UnityEngine.Debug.Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
-
-                        switch (sectionHeader) {
-                        case "Methods":
-                        case "Public Methods":
-                            ScrapeUnityDocSection (d, $"M:{nameSpaceAndClass}", section, memberRegex);
-                            break;
-                        case "Fields":
-                            ScrapeUnityDocSection (d, $"F:{nameSpaceAndClass}", section, memberRegex);
-                            break;
-                        case "Properties":
-                            ScrapeUnityDocSection (d, $"P:{nameSpaceAndClass}", section, memberRegex);
-                            break;
-                        }
+                        ScrapeUnityDocSection (d, nameSpaceAndClass, sectionHeader, section, memberRegex);
                     }
                     prevMatch = mi;
                 }
+            }
+
+            if (prevMatch != null) {
+                var sectionStartIndex = prevMatch.Index + prevMatch.Length;
+                var section = doc [sectionStartIndex..];
+                var sectionHeader = prevMatch.Groups [1].Value.Trim ();
+                //UnityEngine.Debug.Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
+                ScrapeUnityDocSection (d, nameSpaceAndClass, sectionHeader, section, memberRegex);
             }
 
             UpdateDocumentationCache (url, d);
@@ -428,8 +424,17 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Scrape a section of online documentation for members and their description
 		/// </summary>
-        static void ScrapeUnityDocSection (IDictionary<string, string> d, string prefix, string docSection, Regex memberRegex) {
-            foreach (Match mi in memberRegex.Matches (docSection)) {
+        static void ScrapeUnityDocSection (IDictionary<string, string> d, string nameSpaceAndClass, string sectionHeader, string section, Regex memberRegex) {
+            var _pre = sectionHeader switch {
+                "Methods" => "M:",
+                "Public Methods" => "M:",
+                "Fields" => "F:",
+                "Properties" => "P:",
+                _ => "???",
+            };
+            var prefix = _pre + nameSpaceAndClass;
+
+            foreach (Match mi in memberRegex.Matches (section)) {
                 if (mi.Success) {
                     var key = $"{prefix}.{mi.Groups [1].Value}";
                     var xmlComment = mi.Groups [2].Value.Trim ().Replace ("<p>", string.Empty).Replace ("</p>", string.Empty);
