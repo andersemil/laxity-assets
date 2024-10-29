@@ -964,6 +964,7 @@ namespace AranciaAssets.EditorTools {
 
 			AppearanceControlsGUI ();
 			RaycastControlsGUI ();
+			MaskableControlsGUI ();
 			serializedObject.ApplyModifiedProperties ();
 		}
 	}
