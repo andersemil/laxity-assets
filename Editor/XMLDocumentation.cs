@@ -5,7 +5,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+
 using UnityEngine.Networking;
+using UnityEditor;
 
 namespace AranciaAssets.EditorTools {
 
@@ -168,15 +170,16 @@ namespace AranciaAssets.EditorTools {
 		/// </summary>
         static IEnumerable<string> ScriptPaths;
 
-        [UnityEditor.InitializeOnLoadMethod]
+        [InitializeOnLoadMethod]
         //[UnityEditor.Callbacks.DidReloadScripts]
         static void InitOnLoad () {
             /*var globalCacheFilename = Path.Combine (UnityEngine.Application.temporaryCachePath, "globalcache");
             if (File.Exists (globalCacheFilename)) {
                 LoadXMLCache (globalCacheFilename);
             }*/
-            var scriptGuids = UnityEditor.AssetDatabase.FindAssets ("t:Script");
-            ScriptPaths = scriptGuids.Select (guid => UnityEditor.AssetDatabase.GUIDToAssetPath (guid)).Where (path => !path.Contains ("Editor/") && !path.EndsWith (".dll"));
+            var scriptGuids = AssetDatabase.FindAssets ("t:Script");
+            ScriptPaths = scriptGuids.Select (guid => AssetDatabase.GUIDToAssetPath (guid)).Where (path => !path.Contains ("Editor/") && !path.EndsWith (".dll"));
+            Directory.CreateDirectory (CachePath);
         }
 
         /// <summary>
@@ -461,10 +464,10 @@ namespace AranciaAssets.EditorTools {
         }
 
         /// <summary>
-        /// Update cached xml documentation file with new keys
+        /// Update cached xml documentation file
         /// </summary>
         static void UpdateDocumentationCache (string url, IDictionary<string, string> dict) {
-            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url) + ".xml");
+            var filename = GenerateCacheName (url);
             using var fs = new FileStream (filename, FileMode.Create);
             using var sw = new StreamWriter (fs);
             sw.Write ($"<?xml version=\"1.0\"?>\n<doc>\n\t<!-- scraped from {url} -->\n\t<members>\n");
@@ -483,7 +486,7 @@ namespace AranciaAssets.EditorTools {
         /// Attempt to load cached version of url and read the parsed xml documentation from it. Returns true if succesful, false otherwise.
         /// </summary>
         static bool LoadDocumentationCache (string url) {
-            var filename = Path.Combine (UnityEngine.Application.temporaryCachePath, ComputeMD5Hash (url) + ".xml");
+            var filename = GenerateCacheName (url);
             if (!File.Exists (filename))
                 return false;
 
@@ -501,15 +504,29 @@ namespace AranciaAssets.EditorTools {
             using var xmlReader = XmlReader.Create (streamReader);
             while (xmlReader.Read ()) {
                 if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.Name == "member") {
-                    var raw_name = xmlReader ["name"];
+                    var key = xmlReader ["name"];
                     xmlReader.ReadToFollowing ("summary");
-                    var str = xmlReader.ReadInnerXml ();
-                    if (!string.IsNullOrWhiteSpace (str)) {
-                        Documentation [raw_name] = str;
+                    var val = xmlReader.ReadInnerXml ();
+                    if (!string.IsNullOrWhiteSpace (val)) {
+                        Documentation [key] = val;
                         //UnityEngine.Debug.Log ($"FROM CACHE: {raw_name} => {str}");
                     }
                 }
             }
+        }
+
+        static string CachePath { get { return Path.Combine (UnityEngine.Application.temporaryCachePath, "aranciaCache"); } }
+
+        static string GenerateCacheName (string url) {
+            return Path.Combine (CachePath, ComputeMD5Hash (url) + ".xml");
+        }
+
+        [MenuItem ("Tools/Arancia/Clear cache")]
+        static void ClearCache () {
+            Directory.Delete (CachePath, recursive: true);
+            Documentation.Clear ();
+            LoadedTypes.Clear ();
+            Directory.CreateDirectory (CachePath);
         }
     }
 }
