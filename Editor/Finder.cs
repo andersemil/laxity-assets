@@ -390,6 +390,14 @@ namespace AranciaAssets.EditorTools {
 		static void FindReferencesToSelectedObject () {
 			var activeObject = Selection.activeObject;
 			activeObject = (activeObject is Component c) ? c.gameObject : activeObject;
+			HashSet<UnityEngine.Object> activeObjects;
+			string assetPath = null;
+			if (AssetDatabase.Contains (activeObject)) {
+				assetPath = AssetDatabase.GetAssetPath (activeObject);
+				activeObjects = AssetDatabase.LoadAllAssetsAtPath (assetPath).ToHashSet ();
+			} else {
+				activeObjects = new HashSet<UnityEngine.Object> (1) { activeObject };
+			}
 			Init ();
 			Results.Clear ();
 			var allObjects = Resources.FindObjectsOfTypeAll (typeof (GameObject)) as GameObject [];
@@ -414,14 +422,14 @@ namespace AranciaAssets.EditorTools {
 							var oa = pCall.FindPropertyRelative ("m_Target").objectReferenceValue;
 							if (oa != null) {
 								var parentObject = (oa is Component co) ? co.gameObject : oa;
-								if (parentObject == activeObject)
+								if (activeObjects.Contains (parentObject))
 									AddResult (component, pCall.propertyPath, NicePropertyPath (sp));
 							}
 							//Check if object is used as an argument
 							oa = pCall.FindPropertyRelative ("m_Arguments.m_ObjectArgument").objectReferenceValue;
 							if (oa != null) {
-								var parentObject = (oa is Component co) ? co.gameObject : oa;
-								if (parentObject == activeObject)
+								var rootObject = (oa is Component co) ? co.gameObject : oa;
+								if (activeObjects.Contains (rootObject))
 									AddResult (component, pCall.propertyPath, NicePropertyPath (sp));
 							}
 						}
@@ -429,16 +437,17 @@ namespace AranciaAssets.EditorTools {
 					} else if (sp.propertyType == SerializedPropertyType.ObjectReference) {
 						//Check if object is used as a reference
 						var oa = sp.objectReferenceValue;
-						var parentObject = (oa is Component co) ? co.gameObject : oa;
-						if (parentObject == activeObject)
+						var rootObject = (oa is Component co) ? co.gameObject : oa;
+						if (activeObjects.Contains (rootObject))
 							AddResult (component, sp.propertyPath, NicePropertyPath (sp));
 					}
 				} while (sp.NextVisible (enterChildren));
 			}
-			if (activeObject is GameObject ago) {
-				ResultsLabel = $"Found {Results.Count} references to {ago.GetScenePath ()}.";
+			if (string.IsNullOrEmpty (assetPath)) {
+				var scenePath = activeObject is Component co ? co.gameObject.GetScenePath () : ((GameObject)activeObject).GetScenePath ();
+				ResultsLabel = $"Found {Results.Count} references to {scenePath}";
 			} else {
-				ResultsLabel = $"Found {Results.Count} references to {AssetDatabase.GetAssetPath (activeObject)}.";
+				ResultsLabel = $"Found {Results.Count} references to {AssetDatabase.GetAssetPath (activeObject)}";
 			}
 			if (Results.Count == 1) {
 				instance.ShowResult (Results [0]);
