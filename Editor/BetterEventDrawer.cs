@@ -61,6 +61,8 @@ namespace AranciaAssets.EditorTools {
         private const string OpdMenuName = "Tools/Arancia/Better Event Layout";
         private const string OpdKey = "BetterEventDrawer";
 
+        ReorderableList ReorderableList;
+
         [MenuItem (OpdMenuName)]
         public static void ToggleOpd () {
             var opp = EditorPrefs.GetBool (OpdKey, true);
@@ -115,6 +117,7 @@ namespace AranciaAssets.EditorTools {
 
         protected override void SetupReorderableList (ReorderableList list) {
             base.SetupReorderableList (list);
+            ReorderableList = list;
 
             if (EditorPrefs.GetBool (OpdKey, true)) {
                 //Squeeze elements a little tighter together compared to normal UnityEvents
@@ -256,9 +259,64 @@ namespace AranciaAssets.EditorTools {
             }
         }
 
-        //static Texture2D texturePanel;
+        Rect TotalRect = new ();
+        void GrowTotalRect (Rect other) {
+            if (TotalRect.xMin > other.xMin) TotalRect.xMin = other.xMin;
+            if (TotalRect.xMax < other.xMax) TotalRect.xMax = other.xMax;
+            if (TotalRect.yMin > other.yMin) TotalRect.yMin = other.yMin;
+            if (TotalRect.yMax < other.yMax) TotalRect.yMax = other.yMax;
+        }
+
+        protected void OnAddListenerTargets (UnityEngine.Object [] targets) {
+            var list = ReorderableList;
+            var index = list.count;
+            var listenersArray = list.serializedProperty;
+            if (listenersArray.hasMultipleDifferentValues) {
+                //The Serialization system applies the Serialized data of one object to all other objects in the selection.
+                //We handle this by creating a SerializedObject for each object and applying the modifications individually
+                foreach (var targetObject in listenersArray.serializedObject.targetObjects) {
+                    using var temSerializedObject = new SerializedObject (targetObject);
+                    var listenerArrayProperty = temSerializedObject.FindProperty (listenersArray.propertyPath);
+                    listenerArrayProperty.arraySize += targets.Length;
+                    temSerializedObject.ApplyModifiedProperties ();
+                }
+                listenersArray.serializedObject.SetIsDifferentCacheDirty ();
+                listenersArray.serializedObject.Update ();
+                list.index = list.serializedProperty.arraySize - targets.Length;
+            } else {
+                for (int i = 0; i < targets.Length; i++) {
+                    ReorderableList.defaultBehaviours.DoAddButton (list);
+                }
+            }
+
+            foreach (var target in targets) {
+                SetupListenerForTarget (index, target);
+                index++;
+            }
+        }
+
+        void SetupListenerForTarget (int index, UnityEngine.Object target) {
+            var listenersArray = ReorderableList.serializedProperty;
+            var pListener = listenersArray.GetArrayElementAtIndex (index);
+            var callState = pListener.FindPropertyRelative (kCallStatePath);
+            var listenerTarget = pListener.FindPropertyRelative (kInstancePath);
+            var methodName = pListener.FindPropertyRelative (kMethodNamePath);
+            var mode = pListener.FindPropertyRelative (kModePath);
+            var arguments = pListener.FindPropertyRelative (kArgumentsPath);
+
+            callState.enumValueIndex = (int)UnityEventCallState.RuntimeOnly;
+            listenerTarget.objectReferenceValue = target;
+            methodName.stringValue = null;
+            mode.enumValueIndex = (int)PersistentListenerMode.Void;
+            arguments.FindPropertyRelative (kFloatArgument).floatValue = 0;
+            arguments.FindPropertyRelative (kIntArgument).intValue = 0;
+            arguments.FindPropertyRelative (kObjectArgument).objectReferenceValue = null;
+            arguments.FindPropertyRelative (kStringArgument).stringValue = null;
+            arguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName).stringValue = null;
+        }
 
         public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
+            TotalRect = position;
             var headerContent = label.text;
             base.OnGUI (position, property, label);
             if (m_HeaderContent == null) {
@@ -269,16 +327,34 @@ namespace AranciaAssets.EditorTools {
                 }
                 m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { DummyEvent }), icon, tooltip);
             }
+
+            var evt = Event.current;
+            if ((evt.type == EventType.DragPerform || evt.type == EventType.DragUpdated) && TotalRect.Contains (evt.mousePosition)) {
+                var sceneObjects = DragAndDrop.objectReferences.Where (t => t is GameObject go && !AssetDatabase.Contains (go));
+                if (sceneObjects.Count () != 0) {
+                    if (evt.type == EventType.DragPerform) {
+                        OnAddListenerTargets (sceneObjects.ToArray ());
+                        DragAndDrop.AcceptDrag ();
+                        evt.Use ();
+                    }
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                } else {
+                    DragAndDrop.visualMode = DragAndDropVisualMode.None;
+                }
+            }
         }
 
         protected override void DrawEventHeader (Rect headerRect) {
             if (m_HeaderContent != null) {
                 headerRect.height = EditorGUIUtility.singleLineHeight;
+                GrowTotalRect (headerRect);
                 GUI.Label (headerRect, m_HeaderContent);
             }
         }
 
         protected override void DrawEvent (Rect rect, int index, bool isActive, bool isFocused) {
+            GrowTotalRect (rect);
+
             var pListener = ((SerializedProperty)fiListenersArray.GetValue (this)).GetArrayElementAtIndex (index);
             Highlighter.HighlightIdentifier (rect, $"{pListener.serializedObject.targetObject.GetInstanceID ()}.{pListener.propertyPath}");
 

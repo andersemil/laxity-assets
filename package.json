@@ -1,6 +1,6 @@
 {
     "name": "com.aranciaassets.editortools",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "displayName": "Arancia Assets Editor Tools",
     "description": "Collection of cool editing tools for Unity",
     "unity": "2019.4",
