@@ -18,6 +18,8 @@ If properties do not have a TooltipAttribute, but an XML comment or online docum
 ### Match invokation method when dropping new listener target
 When you drop a new target object on a UnityEvent listener, we try to match the Component and method previously invoked. Normal UnityEventDrawer will just reset the listener. This makes it much easier to quickly replace listener targets.
 
+### Drag and drop new listener targets directly on an event
+You can select multiple GameObjects in a loaded scene and drag them on an event-- a listener will be created for each of the objects ready for you to select a method to invoke on each.
 
 ### Find strings or method invokations anywhere in the open scenes by typing a few characters and choosing from a cool dropdown menu!
 <img width="901" alt="Screenshot 2024-02-27 at 16 08 21" src="https://github.com/andersemil/laxity-assets/assets/13269688/043c837a-0dff-4d3b-85f4-610beae08640">
