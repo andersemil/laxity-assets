@@ -1102,6 +1102,10 @@ namespace AranciaAssets.EditorTools {
 			foreach (var mb in mbs) {
 				if (mb == null)
 					continue;
+				if (PrefabUtility.IsPartOfPrefabInstance (mb) /*&& !EditorSceneManager.IsPreviewSceneObject (mb)*/) {
+					//If MonoBehavior is in a prefab asset and we are not editing the prefab, we cannot do anything
+					continue;
+				}
 				var type = mb.GetType ();
 				var so = new SerializedObject (mb);
 				var editorClassIdentifier = $"{type.Assembly.GetName ().Name}::{type.FullName}";
