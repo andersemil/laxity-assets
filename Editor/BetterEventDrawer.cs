@@ -244,7 +244,7 @@ namespace AranciaAssets.EditorTools {
             var target = listenerTarget.objectReferenceValue;
             if (target != null) {
                 var desiredType = Type.GetType (assemblyTypeName, false);
-                if (desiredType != null && desiredType != typeof (GameObject)) {
+                if (desiredType != null && desiredType != typeof (GameObject) && desiredType != typeof (UnityEngine.Object)) {
                     if (target is GameObject go) {
                         target = go.GetComponent (desiredType);
                     } else if (target is Component c) {
