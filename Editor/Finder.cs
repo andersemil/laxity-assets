@@ -91,6 +91,8 @@ namespace AranciaAssets.EditorTools {
 				//GUILayout.Label (textures[0], new GUIStyle () {alignment = TextAnchor.UpperRight});
 				titleContent = new GUIContent ("Finder", icon, "Arancia Finder");
 			}
+			ListInvokations.Clear ();
+			ListStrings.Clear ();
 		}
 
 		void OnHierarchyChange () {
@@ -495,8 +497,9 @@ namespace AranciaAssets.EditorTools {
 			var allGOs = Resources.FindObjectsOfTypeAll (typeof (GameObject)) as GameObject [];
 			var allComponents = allGOs.Where (o => o.scene.isLoaded).SelectMany (o => o.GetComponents<Component> ());
 			foreach (var component in allComponents) {
-				if (component == null || IgnoreTypesForStringSearch.Contains (component.GetType ()))
+				if (component == null)
 					continue;
+				var ignoreStringProps = IgnoreTypesForStringSearch.Contains (component.GetType ());
 				var so = new SerializedObject (component);
 				var sp = so.GetIterator ();
 				SerializedProperty pCalls;
@@ -514,7 +517,7 @@ namespace AranciaAssets.EditorTools {
 								AddResult (component, pCall.propertyPath, NicePropertyPath (sp));
 						}
 						enterChildren = false;
-					} else if (sp.propertyType == SerializedPropertyType.String
+					} else if (!ignoreStringProps && sp.propertyType == SerializedPropertyType.String
 					 && sp.stringValue.Replace ('\n', ' ').Contains (textString, StringComparison.InvariantCultureIgnoreCase)) {
 						AddResult (component, sp.propertyPath, NicePropertyPath (sp));
 					}
@@ -533,8 +536,9 @@ namespace AranciaAssets.EditorTools {
 			var allComponents = allGOs.Where (o => o.scene.isLoaded).SelectMany (o => o.GetComponents<Component> ());
 			ListStrings.Clear ();
 			foreach (var component in allComponents) {
-				if (component == null || IgnoreTypesForStringSearch.Contains (component.GetType ()))
+				if (component == null)
 					continue;
+				var ignoreStringProps = IgnoreTypesForStringSearch.Contains (component.GetType ());
 				var so = new SerializedObject (component);
 				var sp = so.GetIterator ();
 				SerializedProperty pCalls;
@@ -551,7 +555,7 @@ namespace AranciaAssets.EditorTools {
 								ListStrings.Add (sv.Replace ('\n', ' '));
 						}
 						enterChildren = false;
-					} else if (sp.propertyType == SerializedPropertyType.String) {
+					} else if (!ignoreStringProps && sp.propertyType == SerializedPropertyType.String) {
 						var sv = sp.stringValue;
 						if (!string.IsNullOrWhiteSpace (sv))
 							ListStrings.Add (sv.Replace ('\n', ' '));
