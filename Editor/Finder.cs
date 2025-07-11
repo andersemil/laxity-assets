@@ -393,7 +393,8 @@ namespace AranciaAssets.EditorTools {
 
 		[MenuItem (itemName: "Tools/Arancia Finder %g", isValidateFunction: false, priority: 0)]
 		static void Init () {
-			instance = GetWindow<Finder> ("Arancia Finder", true);
+			instance = GetWindow<Finder> ("Finder", true);
+			instance.OnEnable ();
 			instance.Focus ();
 		}
 
