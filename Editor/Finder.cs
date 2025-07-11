@@ -59,6 +59,8 @@ namespace AranciaAssets.EditorTools {
 		readonly Type InspectorWindowType, PropertyEditorType;
 		EditorWindow InspectorWindow;
 		Rect MethodRect, TextRect;
+		Rect BgRect, ShadowRect;
+		static Texture Icon, BgTexture, CornerShadowTexture;
 
 		internal const string kCallsPath = "m_PersistentCalls.m_Calls";
 
@@ -84,15 +86,20 @@ namespace AranciaAssets.EditorTools {
 		}
 
 		void OnEnable () {
-			var icon = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("db4aaf330ef7e43858c9c49ff984c8c3"));
-			//var textures = PlayerSettings.GetIconsForTargetGroup (BuildTargetGroup.Unknown);
-			//if (textures != null && textures.Length > 0 && textures [0] != null) {
-			if (icon != null) {
-				//GUILayout.Label (textures[0], new GUIStyle () {alignment = TextAnchor.UpperRight});
-				titleContent = new GUIContent ("Finder", icon, "Arancia Finder");
+			if (CornerShadowTexture == null)
+				CornerShadowTexture = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("b845a1cec009c4573ad72b8371c72073"));
+			if (BgTexture == null)
+				BgTexture = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("27fd663c114fa49b4b04772e62418801"));
+			if (Icon == null)
+				Icon = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("db4aaf330ef7e43858c9c49ff984c8c3"));
+			if (Icon != null) {
+				titleContent = new GUIContent ("Finder", Icon, "Arancia Finder");
 			}
 			ListInvokations.Clear ();
 			ListStrings.Clear ();
+
+			BgRect = new Rect (0, 0, BgTexture.width, BgTexture.height);
+			ShadowRect = new Rect (0, 0, position.width, CornerShadowTexture.height * 1.5f);
 		}
 
 		void OnHierarchyChange () {
@@ -101,6 +108,12 @@ namespace AranciaAssets.EditorTools {
 		}
 
 		void OnGUI () {
+			BgRect.x = position.width - BgTexture.width;
+			BgRect.y = position.height - BgTexture.height;
+			GUI.DrawTexture (BgRect, BgTexture, ScaleMode.ScaleAndCrop);
+			ShadowRect.width = position.width;
+			GUI.DrawTexture (ShadowRect, CornerShadowTexture, ScaleMode.StretchToFill);
+
 			Event e = Event.current;
 			if (e.type == EventType.MouseDown && ComboBoxPopup.Instance != null) {
 				ComboBoxPopup.Instance.Close ();
