@@ -141,12 +141,14 @@ namespace AranciaAssets.EditorTools {
 
 			var buttonMaxWidthOption = GUILayout.MaxWidth (100f);
 			var bigButtonMaxWidthOption = GUILayout.MaxWidth (170f);
+			var fieldMaxWidthOption = GUILayout.MaxWidth (500f);
 			var expandWidthOption = GUILayout.ExpandWidth (true);
 
 			EditorGUILayout.Separator ();
 
 			EditorGUILayout.BeginHorizontal ();
-			var li = EditorGUILayout.LayerField (new GUIContent ("Layer:", "Find all gameobjects in the given layer"), LayerIndex, expandWidthOption);
+			EditorGUILayout.PrefixLabel (new GUIContent ("Layer:", "Find all gameobjects in the given layer"));
+			var li = EditorGUILayout.LayerField (LayerIndex, expandWidthOption, fieldMaxWidthOption);
 			if (li != LayerIndex || GUILayout.Button ("Find objects", buttonMaxWidthOption)) {
 				LayerIndex = li;
 				FindObjectsInLayer (LayerIndex);
@@ -154,7 +156,8 @@ namespace AranciaAssets.EditorTools {
 			EditorGUILayout.EndHorizontal ();
 
 			EditorGUILayout.BeginHorizontal ();
-			var tag = EditorGUILayout.TagField (new GUIContent ("Tag:", "Find all gameobjects in a scene with the given tag"), TagName, expandWidthOption);
+			EditorGUILayout.PrefixLabel (new GUIContent ("Tag:", "Find all gameobjects in a scene with the given tag"));
+			var tag = EditorGUILayout.TagField (TagName, expandWidthOption, fieldMaxWidthOption);
 			if (tag != TagName || GUILayout.Button ("Find objects", buttonMaxWidthOption)) {
 				TagName = tag;
 				FindObjectsWithTag (TagName);
@@ -165,7 +168,7 @@ namespace AranciaAssets.EditorTools {
 			EditorGUILayout.PrefixLabel (new GUIContent ("Method:", "Whole or partial method and class name to find references to"));
 			GUI.SetNextControlName ("Method");
 			EditorGUI.BeginChangeCheck ();
-			MethodName = EditorGUILayout.TextField (MethodName, expandWidthOption).Trim ();
+			MethodName = EditorGUILayout.TextField (MethodName, expandWidthOption, fieldMaxWidthOption).Trim ();
 			if (Event.current.type == EventType.Repaint) {
 				MethodRect = GUILayoutUtility.GetLastRect ();
 			}
@@ -230,7 +233,7 @@ namespace AranciaAssets.EditorTools {
 			EditorGUILayout.PrefixLabel (new GUIContent ("String:", "Whole or partial string to search for"));
 			GUI.SetNextControlName ("Text");
 			EditorGUI.BeginChangeCheck ();
-			TextString = EditorGUILayout.TextField (TextString, expandWidthOption);
+			TextString = EditorGUILayout.TextField (TextString, expandWidthOption, fieldMaxWidthOption);
 			if (Event.current.type == EventType.Repaint) {
 				TextRect = GUILayoutUtility.GetLastRect ();
 			}
