@@ -391,7 +391,7 @@ namespace AranciaAssets.EditorTools {
 			}
 		}
 
-		[MenuItem (itemName: "Tools/Arancia Finder %g", isValidateFunction: false, priority: 0)]
+		[MenuItem (itemName: "Tools/Arancia/Finder %g", isValidateFunction: false, priority: 0)]
 		static void Init () {
 			instance = GetWindow<Finder> ("Finder", true);
 			instance.OnEnable ();

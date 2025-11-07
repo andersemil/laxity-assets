@@ -6,9 +6,12 @@ using UnityEngine;
 namespace AranciaAssets.EditorTools {
     public class DeepCopy {
 		const string Title = "Deep Copy";
+		const string ToolsMenuItemName = "Tools/Arancia/Deep Copy #%d";
+		const string AssetMenuItemName = "Assets/Arancia/Deep Copy";
 
-        [MenuItem (itemName: "Tools/Ariancia Deep Copy #%d", isValidateFunction: true, priority: 0)]
-        static bool ValidateDeepCopyFolder () {
+		[MenuItem (itemName: ToolsMenuItemName, isValidateFunction: true, priority: 0)]
+		[MenuItem (itemName: AssetMenuItemName, isValidateFunction: true, priority: 1)]
+		static bool ValidateDeepCopyFolder () {
 			var guids = Selection.assetGUIDs;
 			if (guids.Length != 1)
 				return false;
@@ -16,7 +19,8 @@ namespace AranciaAssets.EditorTools {
 			return AssetDatabase.IsValidFolder (assetPath);
 		}
 
-		[MenuItem (itemName: "Tools/Ariancia Deep Copy #%d", isValidateFunction: false, priority: 0)]
+		[MenuItem (itemName: ToolsMenuItemName, isValidateFunction: false, priority: 0)]
+		[MenuItem (itemName: AssetMenuItemName, isValidateFunction: false, priority: 1)]
 		static void DeepCopyFolder () {
 			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
 				Debug.LogError ("Deep copy failed. You need to set Serialization Mode in Project Settings to \"Force Text\". You can change it back after deep-copying if you want.");
