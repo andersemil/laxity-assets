@@ -1,4 +1,7 @@
 # Arancia Editor Assets
+## Deep-copy a folder, re-mapping all references to assets!
+Select a folder in the Project window and hit CTRL+Shift+D (or right-click and select Ariancia/Deep Copy menu item), you will be prompted for a simple find-and-replace on asset names, and hit OK. A new folder will be created with all the same assets, but with references to other assets inside the new folder, instead of the standard behaviour of retaining references to the original folder.
+
 ## Add tooltips to your UnityEvents! They will display correctly in the Inspector
 ```
     [Tooltip ("Invoked with the world speed of the transform (units per second)")]
