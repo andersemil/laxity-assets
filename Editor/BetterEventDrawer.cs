@@ -240,9 +240,10 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Attempt to find new target object to match the original type
         /// </summary>
-        protected void FindMethod (SerializedProperty listenerTarget, string assemblyTypeName, SerializedProperty methodName) {
+        protected bool FindMethod (SerializedProperty pListener, string assemblyTypeName, SerializedProperty methodName) {
+            var listenerTarget = pListener.FindPropertyRelative (kInstancePath);
             var target = listenerTarget.objectReferenceValue;
-            if (target != null) {
+            if (target != null && !string.IsNullOrWhiteSpace (assemblyTypeName)) {
                 var desiredType = Type.GetType (assemblyTypeName, false);
                 if (desiredType != null && desiredType != typeof (GameObject) && desiredType != typeof (UnityEngine.Object)) {
                     if (target is GameObject go) {
@@ -254,9 +255,11 @@ namespace AranciaAssets.EditorTools {
             }
             if (target != null) {
                 listenerTarget.objectReferenceValue = target;
-            } else {
-                methodName.stringValue = null;
+                pListener.FindPropertyRelative (kInstanceTypePath).stringValue = assemblyTypeName;
+                return true;
             }
+            methodName.stringValue = null;
+            return false;
         }
 
         Rect TotalRect = new ();
@@ -289,30 +292,52 @@ namespace AranciaAssets.EditorTools {
                 }
             }
 
+            SerializedProperty prevArguments = null;
+            string prevMethodName = null;
+            PersistentListenerMode mode = PersistentListenerMode.Void;
+            if (index != 0) {
+                var pListener = listenersArray.GetArrayElementAtIndex (index - 1);
+                mode = (PersistentListenerMode)pListener.FindPropertyRelative (kModePath).enumValueIndex;
+                prevMethodName = pListener.FindPropertyRelative (kMethodNamePath).stringValue;
+                prevArguments = pListener.FindPropertyRelative (kArgumentsPath);
+            }
+
             foreach (var target in targets) {
-                SetupListenerForTarget (index, target);
+                var arguments = SetupListenerForTarget (index, target, prevMethodName, mode);
+                if (arguments != null && prevArguments != null && mode != PersistentListenerMode.EventDefined) {
+                    arguments.FindPropertyRelative (kIntArgument).intValue = prevArguments.FindPropertyRelative (kIntArgument).intValue;
+                    arguments.FindPropertyRelative (kFloatArgument).floatValue = prevArguments.FindPropertyRelative (kFloatArgument).floatValue;
+                    arguments.FindPropertyRelative (kStringArgument).stringValue = prevArguments.FindPropertyRelative (kStringArgument).stringValue;
+                    arguments.FindPropertyRelative (kObjectArgument).objectReferenceValue = prevArguments.FindPropertyRelative (kObjectArgument).objectReferenceValue;
+                    arguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName).stringValue = prevArguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName).stringValue;
+                }
                 index++;
             }
         }
 
-        void SetupListenerForTarget (int index, UnityEngine.Object target) {
+        SerializedProperty SetupListenerForTarget (int index, UnityEngine.Object target, string defaultMethodName = null, PersistentListenerMode mode = PersistentListenerMode.Void) {
             var listenersArray = ReorderableList.serializedProperty;
             var pListener = listenersArray.GetArrayElementAtIndex (index);
             var callState = pListener.FindPropertyRelative (kCallStatePath);
             var listenerTarget = pListener.FindPropertyRelative (kInstancePath);
             var methodName = pListener.FindPropertyRelative (kMethodNamePath);
-            var mode = pListener.FindPropertyRelative (kModePath);
+            var mmode = pListener.FindPropertyRelative (kModePath);
             var arguments = pListener.FindPropertyRelative (kArgumentsPath);
+            var targetAssemblyTypeName = pListener.FindPropertyRelative (kInstanceTypePath).stringValue;
 
             callState.enumValueIndex = (int)UnityEventCallState.RuntimeOnly;
             listenerTarget.objectReferenceValue = target;
-            methodName.stringValue = null;
-            mode.enumValueIndex = (int)PersistentListenerMode.Void;
+            methodName.stringValue = defaultMethodName;
+            mmode.enumValueIndex = (int)mode;
             arguments.FindPropertyRelative (kFloatArgument).floatValue = 0;
             arguments.FindPropertyRelative (kIntArgument).intValue = 0;
             arguments.FindPropertyRelative (kObjectArgument).objectReferenceValue = null;
             arguments.FindPropertyRelative (kStringArgument).stringValue = null;
             arguments.FindPropertyRelative (kObjectArgumentAssemblyTypeName).stringValue = null;
+
+            FindMethod (pListener, targetAssemblyTypeName, methodName);
+
+            return arguments;
         }
 
         public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
@@ -387,7 +412,7 @@ namespace AranciaAssets.EditorTools {
 
                 EditorGUI.PropertyField (goRect, listenerTarget, GUIContent.none);
                 if (EditorGUI.EndChangeCheck ())
-                    FindMethod (listenerTarget, targetAssemblyTypeName, methodName);
+                    FindMethod (pListener, targetAssemblyTypeName, methodName);
             }
 
             var argument = GetArgument (pListener);
