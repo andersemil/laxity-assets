@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,7 +24,7 @@ namespace AranciaAssets.EditorTools {
 		[MenuItem (itemName: AssetMenuItemName, isValidateFunction: false, priority: 1)]
 		static void DeepCopyFolder () {
 			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
-				Debug.LogError ("Deep copy failed. You need to set Serialization Mode in Project Settings to \"Force Text\". You can change it back after deep-copying if you want.");
+				Debug.LogError ("Deep Copy requires Serialization Mode in Project Settings to be \"Force Text\". You can change it back after deep-copying if you want.");
 				SettingsService.OpenProjectSettings ();
 				return;
 			}
@@ -38,7 +39,9 @@ namespace AranciaAssets.EditorTools {
 		}
 
 		static void DeepCopyFolder (string findValue, string replaceValue) {
-			var guidDict = new Dictionary<string, GUID> ();
+			AssetDatabase.SaveAssets ();
+
+			var guidDict = new Dictionary<string, string> ();
 			var guids = Selection.assetGUIDs;
 
 			var shouldReplace = findValue != replaceValue;
@@ -59,6 +62,7 @@ namespace AranciaAssets.EditorTools {
 			var assetGuids = AssetDatabase.FindAssets ("", new string [1] { sourceFolderPath });
 			var numRefsScanned = 0;
 			var numRefsReplaced = 0;
+			var numNamesReplaced = 0;
 
 			try {
 				var p = 0f;
@@ -73,25 +77,26 @@ namespace AranciaAssets.EditorTools {
 					var dstDir = Path.GetDirectoryName (dstPath);
 					RecursiveCreateAssetFolder (dstDir);
 					if (shouldReplace) {
-						dstPath = Path.Combine (dstDir, Path.GetFileName (dstPath).Replace (findValue, replaceValue));
+						dstPath = Path.Combine (dstDir, Path.GetFileName (dstPath)).Replace (findValue, replaceValue);
 					}
 					if (AssetDatabase.CopyAsset (srcPath, dstPath)) {
-						guidDict.Add (guid.ToString (), AssetDatabase.GUIDFromAssetPath (dstPath));
+						guidDict.Add (guid.ToString (), AssetDatabase.AssetPathToGUID (dstPath));
 					} else {
-						Debug.LogError ($"CopyAsset failed for {srcPath}");
+						Debug.LogError ($"DeepCopy: CopyAsset failed for {srcPath}");
 					}
 				}
 
-				Debug.Log ($"Duplicated {assetGuids.Length} assets, replacing duplicated object references:");
+				Debug.Log ($"DeepCopy duplicated {assetGuids.Length} assets, replacing duplicated object references:");
 
+				var sb = new StringBuilder ();
+				var dstGuids = guidDict.Values;
 				p = 0f;
-				foreach (var guid in guidDict.Values) {
+				dp = 1f / dstGuids.Count;
+				foreach (var guid in dstGuids) {
 					EditorUtility.DisplayProgressBar (Title, "Scanning references ...", p);
 					p += dp;
 					var path = AssetDatabase.GUIDToAssetPath (guid);
-					var relPath = Path.GetRelativePath (sourceFolderPath, path);
-
-					var ext = Path.GetExtension (relPath);
+					var ext = Path.GetExtension (path);
 					var isYaml =
 						ext == ".unity"
 					 || ext == ".prefab"
@@ -107,51 +112,63 @@ namespace AranciaAssets.EditorTools {
 					 || ext == ".obj"
 					 || ext == ".dxf"
 					 || ext == ".dae";
+
 					if (isModel) {
 						path += ".meta";
-						relPath += ".meta";
+					} else if (!isYaml) {
+						continue;
 					}
 
-					if (isYaml || isModel) {
-						var lines = File.ReadAllLines (path);
-						if (lines.Length > 1 && (isModel || lines [0].StartsWith ("%YAML "))) {
-							var changed = false;
-							var objName = string.Empty;
-							for (int i = 1; i < lines.Length; i++) {
-								var li = lines [i];
-								/*if (li.StartsWith ("--- !u!")) {
-									objName = string.Empty;
-								} else if (li.StartsWith ("  m_Name: ")) {
-									objName = li [10..];
-								}*/
-								var idxOfGuid = li.IndexOf ("guid: ");
-								if (idxOfGuid != -1) {
-									numRefsScanned++;
-									var refGuid = li.Substring (idxOfGuid + 6, 32);
-									if (guidDict.TryGetValue (refGuid, out GUID dstGuid)) {
-										lines [i] = li.Replace (refGuid, dstGuid.ToString ());
-										numRefsReplaced++;
-										changed = true;
-										Debug.Log ($"Replaced reference to {Path.GetRelativePath (sourceFolderPath, AssetDatabase.GUIDToAssetPath (refGuid))} in {relPath} line {i}");
-									}
-								} else if (shouldReplace && li.Trim () == "propertyPath: m_Name") {
-									li = lines [++i];
-									var idxOfValue = li.IndexOf ("value: ");
-									if (idxOfValue != -1) {
-										var _c = idxOfValue + 7;
-										var _origName = li.Substring (_c);
+					var lines = File.ReadAllLines (path);
+					if (lines.Length > 1 && (isModel || lines [0].StartsWith ("%YAML "))) {
+						var relPath = Path.GetRelativePath (dstFolderPath, path);
+						var changed = false;
+						var objName = string.Empty;
+						sb.Clear ();
+						for (int i = 1; i < lines.Length; i++) {
+							var li = lines [i];
+							if (shouldReplace && li.StartsWith ("  m_Name: ")) {
+								objName = li [10..];
+								if (objName.Contains (findValue)) {
+									var newObjName = objName.Replace (findValue, replaceValue);
+									lines [i] = li [0..10] + newObjName;
+									sb.AppendLine ($"Replaced object name {objName} with {newObjName} in {relPath} line {i}");
+									numNamesReplaced++;
+								}
+							}
+							var idxOfGuid = li.IndexOf ("guid: ");
+							if (idxOfGuid != -1) {
+								numRefsScanned++;
+								var refGuid = li.Substring (idxOfGuid + 6, 32);
+								if (guidDict.TryGetValue (refGuid, out string dstGuid)) {
+									lines [i] = li.Replace (refGuid, dstGuid);
+									numRefsReplaced++;
+									changed = true;
+									sb.AppendLine ($"Replaced reference to {Path.GetRelativePath (sourceFolderPath, AssetDatabase.GUIDToAssetPath (refGuid))} in {relPath} line {i}");
+								}
+							} else if (shouldReplace && li.Trim () == "propertyPath: m_Name") {
+								li = lines [++i];
+								var idxOfValue = li.IndexOf ("value: ");
+								if (idxOfValue != -1) {
+									var _c = idxOfValue + 7;
+									var _origName = li.Substring (_c);
+									if (_origName.Contains (findValue)) {
 										var _newName = _origName.Replace (findValue, replaceValue);
 										lines [i] = li.Substring (0, _c) + _newName;
-										Debug.Log ($"Replaced name {_origName} with {_newName} in {relPath} line {i}");
+										sb.AppendLine ($"Replaced name {_origName} with {_newName} in {relPath} line {i}");
+										numNamesReplaced++;
 									}
 								}
 							}
-							if (changed) {
-								File.WriteAllLines (path, lines);
-							}
-						} else {
-							Debug.LogWarning ("File did not parse as yaml: " + path);
 						}
+						if (sb.Length != 0) {
+							Debug.Log (sb);
+						}
+						if (changed) {
+							File.WriteAllLines (path, lines);
+						}
+					} else {
+						Debug.LogWarning ("File did not parse as yaml: " + path);
 					}
 				}
 			} catch (System.Exception ex) {
@@ -159,7 +176,8 @@ namespace AranciaAssets.EditorTools {
 			}
 
 			EditorUtility.ClearProgressBar ();
-			Debug.Log ($"Replaced {numRefsReplaced} references to original objects in a total of {numRefsScanned} object references in duplicated folder");
+			Debug.Log ($"DeepCopy replaced {numRefsReplaced} references to original objects in a total of {numRefsScanned} object references in duplicated folder");
+			Debug.Log ($"DeepCopy replaced {numNamesReplaced} object names in duplicated folder ({findValue} => {replaceValue})");
 			AssetDatabase.ImportAsset (dstFolderPath, ImportAssetOptions.ImportRecursive);
 		}
 
@@ -176,17 +194,17 @@ namespace AranciaAssets.EditorTools {
 
 		class SimpleReplaceDialog : EditorWindow {
 			string find, replace;
-			string submitButtonText = "OK";
-			string cancelButtonText = "Cancel";
+			readonly GUIContent submitButton = EditorGUIUtility.TrTextContent("OK");
+			readonly GUIContent cancelButton = EditorGUIUtility.TrTextContent("Cancel");
             System.Action<string, string> callback;
 
 			void OnGUI () {
 				Event e = Event.current;
-				find = EditorGUILayout.TextField ("Find:", find);
-				replace = EditorGUILayout.TextField ("Replace:", replace);
+				find = EditorGUILayout.TextField (EditorGUIUtility.TrTextContent("Find"), find);
+				replace = EditorGUILayout.TextField (EditorGUIUtility.TrTextContent("Replace"), replace);
 				EditorGUILayout.BeginHorizontal ();
-				var submit = GUILayout.Button (submitButtonText);
-				var cancel = GUILayout.Button (cancelButtonText);
+				var submit = GUILayout.Button (submitButton);
+				var cancel = GUILayout.Button (cancelButton);
 				EditorGUILayout.EndHorizontal ();
 				if (submit || (e.type == EventType.KeyDown && e.keyCode == KeyCode.Return)) {
 					Close ();
@@ -204,10 +222,10 @@ namespace AranciaAssets.EditorTools {
 				window.find = defaultFindValue;
 				window.replace = defaultReplaceValue;
 				if (submitButtonText != null) {
-					window.submitButtonText = submitButtonText;
+					window.submitButton.text = submitButtonText;
 				}
 				if (cancelButtonText != null) {
-					window.cancelButtonText = cancelButtonText;
+					window.cancelButton.text = cancelButtonText;
 				}
 				window.ShowUtility ();
 				var w = 400;
