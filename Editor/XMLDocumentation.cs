@@ -264,8 +264,12 @@ namespace AranciaAssets.EditorTools {
                     if (!mi.Groups [2].Success || mi.Groups [2].Value != "public")
                         continue;
                     key = $"M:{nameSpaceAndClass}{mi.Groups [3].Value}";
-                    if (mi.Groups [4].Success)
+                    if (mi.Groups [4].Success) {
+                        //Ignore extension methods
+                        if (mi.Groups [4].Value == "this")
+                            continue;
                         key += $"({ClassifyType (nameSpaceAndClass, usingNamespaces, mi.Groups [4].Value)})";
+                    }
                     //UnityEngine.Debug.Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 } else if (mi.Groups [5].Success) {
