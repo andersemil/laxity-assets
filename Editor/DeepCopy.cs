@@ -135,6 +135,14 @@ namespace AranciaAssets.EditorTools {
 									sb.AppendLine ($"Replaced object name {objName} with {newObjName} in {relPath} line {i}");
 									numNamesReplaced++;
 								}
+							} else if (shouldReplace && ext == ".anim" && li.StartsWith ("    path: ")) {
+								objName = li [10..];
+								if (objName.Contains (findValue)) {
+									var newObjName = objName.Replace (findValue, replaceValue);
+									lines [i] = li [0..10] + newObjName;
+									sb.AppendLine ($"Replaced animation path {objName} with {newObjName} in {relPath} line {i}");
+									numNamesReplaced++;
+								}
 							}
 							var idxOfGuid = li.IndexOf ("guid: ");
 							if (idxOfGuid != -1) {
