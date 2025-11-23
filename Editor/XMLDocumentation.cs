@@ -195,6 +195,8 @@ namespace AranciaAssets.EditorTools {
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
                 } else if (type.Namespace == "UnityEngine.InputSystem.UI") {
                     ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.inputsystem@1.8/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
+                } else if (type.Namespace == "UnityEngine.Timeline") {
+                    ScrapeUnityDocumentation($"https://docs.unity3d.com/Packages/com.unity.timeline@1.8/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
                 } else {
                     //Scrape built-in package documentation
                     //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
