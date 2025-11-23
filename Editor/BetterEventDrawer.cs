@@ -366,7 +366,9 @@ namespace AranciaAssets.EditorTools {
                 } else {
                     DragAndDrop.visualMode = DragAndDropVisualMode.None;
                 }
-            } else if (evt.type == EventType.KeyDown && evt.keyCode == KeyCode.Delete) {
+            } else if (evt.type == EventType.KeyDown
+                && (evt.keyCode == KeyCode.Delete
+                || (evt.keyCode == KeyCode.Backspace && evt.modifiers == EventModifiers.Command))) {
                 ReorderableList.defaultBehaviours.DoRemoveButton (ReorderableList);
             }
         }
