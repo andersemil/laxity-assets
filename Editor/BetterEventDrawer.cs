@@ -194,7 +194,8 @@ namespace AranciaAssets.EditorTools {
                             if (mode == PersistentListenerMode.EventDefined) {
                                 var miFindMethod = DummyEvent.GetType ().GetMethod ("FindMethod", BindingFlags.Instance | BindingFlags.NonPublic, null, FindMethodArguments, null);
                                 var miEventMethod = miFindMethod.Invoke (DummyEvent, new object [] { "Invoke", DummyEvent.GetType (), PersistentListenerMode.EventDefined, null }) as MethodInfo;
-                                var argType = miEventMethod.GetParameters () [0].ParameterType;
+                                var parms = miEventMethod.GetParameters ();
+                                var argType = parms.Length != 0 ? miEventMethod.GetParameters () [0].ParameterType : typeof(void);
                                 do {
                                     xmlDoc = mi.GetDocumentation ($"({argType})");
                                     if (!string.IsNullOrWhiteSpace (xmlDoc))
