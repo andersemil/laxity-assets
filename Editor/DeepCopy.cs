@@ -73,12 +73,13 @@ namespace AranciaAssets.EditorTools {
 					var srcPath = AssetDatabase.GUIDToAssetPath (guid);
 					if ((File.GetAttributes (srcPath) & FileAttributes.Directory) != 0)
 						continue;
-					var dstPath = Path.Combine (dstFolderPath, Path.GetRelativePath (sourceFolderPath, srcPath));
+					var dstPath = Path.GetRelativePath (sourceFolderPath, srcPath);
+					if (shouldReplace) {
+						dstPath = dstPath.Replace (findValue, replaceValue);
+					}
+					dstPath = Path.Combine (dstFolderPath, dstPath);
 					var dstDir = Path.GetDirectoryName (dstPath);
 					RecursiveCreateAssetFolder (dstDir);
-					if (shouldReplace) {
-						dstPath = Path.Combine (dstDir, Path.GetFileName (dstPath)).Replace (findValue, replaceValue);
-					}
 					if (AssetDatabase.CopyAsset (srcPath, dstPath)) {
 						guidDict.Add (guid.ToString (), AssetDatabase.AssetPathToGUID (dstPath));
 					} else {
