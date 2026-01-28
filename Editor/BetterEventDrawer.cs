@@ -201,7 +201,7 @@ namespace AranciaAssets.EditorTools {
                                     if (!string.IsNullOrWhiteSpace (xmlDoc))
                                         break;
                                     argType = argType.BaseType;
-                                } while (argType != typeof (object));
+                                } while (argType != null && argType != typeof (object));
                             } else {
 #pragma warning disable 8524
                                 var argumentString = mode switch {
@@ -221,7 +221,9 @@ namespace AranciaAssets.EditorTools {
                     }
                 } catch (AmbiguousMatchException) {
                     //For now we don't care about this. We will figure out a better way to match the methods later
-                    Debug.Log ("Ambiguous match for " + methodName.stringValue);
+                    Debug.LogError ("Ambiguous match for " + methodName.stringValue);
+                } catch (IndexOutOfRangeException) {
+                    Debug.LogError ("IndexOutOfRangeException for " + methodName.stringValue);
                 }
 
                 buttonLabel.Append (listenerTargetType.Name);
