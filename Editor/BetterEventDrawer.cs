@@ -373,6 +373,33 @@ namespace AranciaAssets.EditorTools {
                 && (evt.keyCode == KeyCode.Delete
                 || (evt.keyCode == KeyCode.Backspace && evt.modifiers == EventModifiers.Command))) {
                 ReorderableList.defaultBehaviours.DoRemoveButton (ReorderableList);
+            } else if ((evt.type == EventType.ExecuteCommand || evt.type == EventType.ValidateCommand)
+                && ReorderableList.HasKeyboardControl ()) {
+                if (evt.commandName == "Copy") {
+                    var selectedIndices = ReorderableList.selectedIndices;
+                    if (selectedIndices.Count != 0) {
+                        if (evt.type == EventType.ExecuteCommand) {
+                            var listenersArray = ReorderableList.serializedProperty;
+                            var pListener = listenersArray.GetArrayElementAtIndex (selectedIndices.First ());
+                            var json = PropertyJsonSerializer.SerializeProperty (pListener);
+                            Debug.Log ("JSON: " + json);
+                            EditorGUIUtility.systemCopyBuffer = json;
+                        }
+                        evt.Use (); // Prevent default copy
+                    }
+                } else if (evt.commandName == "Paste") {
+                    if (evt.type == EventType.ExecuteCommand) {
+                        var listenersArray = ReorderableList.serializedProperty;
+                        var startingIndex = listenersArray.arraySize;
+                        var selectedIndices = ReorderableList.selectedIndices;
+                        if (selectedIndices.Count != 0) {
+                            startingIndex = selectedIndices.Last ();
+                        }
+                        listenersArray.InsertArrayElementAtIndex (startingIndex);
+                        PropertyJsonSerializer.DeserializeProperty (listenersArray.GetArrayElementAtIndex (startingIndex), EditorGUIUtility.systemCopyBuffer);
+                    }
+                    evt.Use (); // Prevent default paste
+                }
             }
         }
 
