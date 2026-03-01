@@ -382,7 +382,7 @@ namespace AranciaAssets.EditorTools {
                             var listenersArray = ReorderableList.serializedProperty;
                             var pListener = listenersArray.GetArrayElementAtIndex (selectedIndices.First ());
                             var json = PropertyJsonSerializer.SerializeProperty (pListener);
-                            Debug.Log ("JSON: " + json);
+                            //Debug.Log ("JSON: " + json);
                             EditorGUIUtility.systemCopyBuffer = json;
                         }
                         evt.Use (); // Prevent default copy
@@ -396,7 +396,11 @@ namespace AranciaAssets.EditorTools {
                             startingIndex = selectedIndices.Last ();
                         }
                         listenersArray.InsertArrayElementAtIndex (startingIndex);
+                        Undo.IncrementCurrentGroup ();
+                        Undo.SetCurrentGroupName ("Paste Event Listener");
+                        var undoGroupIndex = Undo.GetCurrentGroup ();
                         PropertyJsonSerializer.DeserializeProperty (listenersArray.GetArrayElementAtIndex (startingIndex), EditorGUIUtility.systemCopyBuffer);
+                        Undo.CollapseUndoOperations (undoGroupIndex);
                     }
                     evt.Use (); // Prevent default paste
                 }
