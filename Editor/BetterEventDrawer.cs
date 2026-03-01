@@ -395,10 +395,13 @@ namespace AranciaAssets.EditorTools {
                         if (selectedIndices.Count != 0) {
                             startingIndex = selectedIndices.Last ();
                         }
-                        listenersArray.InsertArrayElementAtIndex (startingIndex);
                         Undo.IncrementCurrentGroup ();
                         Undo.SetCurrentGroupName ("Paste Event Listener");
                         var undoGroupIndex = Undo.GetCurrentGroup ();
+                        if (startingIndex == listenersArray.arraySize
+                            || listenersArray.GetArrayElementAtIndex (startingIndex).FindPropertyRelative (kInstancePath).objectReferenceValue != null) {
+                            listenersArray.InsertArrayElementAtIndex (startingIndex);
+                        }
                         PropertyJsonSerializer.DeserializeProperty (listenersArray.GetArrayElementAtIndex (startingIndex), EditorGUIUtility.systemCopyBuffer);
                         Undo.CollapseUndoOperations (undoGroupIndex);
                     }
