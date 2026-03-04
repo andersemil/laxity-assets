@@ -1,14 +1,7 @@
 {
-    "name": "com.aranciaassets.editor",
+    "name": "com.aranciaassets.runtime",
     "rootNamespace": "",
-    "references": [
-        "Unity.TextMeshPro",
-        "Unity.EditorCoroutines.Editor",
-        "com.aranciaassets.runtime"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
