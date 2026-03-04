@@ -54,8 +54,7 @@ namespace AranciaAssets.EditorTools {
 			}
 		}
 
-		protected void DrawReferenceButton()
-		{
+		protected void DrawComment () {
 			if (EditIcon == null)
 				return;
 
@@ -171,7 +170,7 @@ namespace AranciaAssets.EditorTools {
 		public override void OnInspectorGUI () {
 			serializedObject.Update ();
 
-			DrawReferenceButton ();
+			DrawComment ();
 
 			//var instanceID = serializedObject.targetObject.GetInstanceID ();
 
