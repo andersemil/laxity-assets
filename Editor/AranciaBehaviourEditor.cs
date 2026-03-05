@@ -31,32 +31,22 @@ namespace AranciaAssets.EditorTools {
 		}
 
 		protected virtual void OnEnable () {
-			EditIcon = new GUIContent (EditorGUIUtility.IconContent ("d_editicon.sml")) {
-				tooltip = "Edit Comment",
-			};
-			OkIcon = new GUIContent (EditorGUIUtility.IconContent ("d_FilterSelectedOnly")) {
-				tooltip = "OK",
-			};
-			//EditorApplication.update += CheckGlobalFocus;
-			CommentProp = serializedObject.FindProperty ("AranciaComment");
-		}
-
-		protected virtual void OnDisable () {
-			Debug.Log ("OnDisable");
-			EditorApplication.update -= CheckGlobalFocus;
-		}
-
-		void CheckGlobalFocus () {
-			if (EditingComment) {
-				EditingComment = false;
-				EditorUtility.SetDirty (target);
-				Repaint ();
-			}
 		}
 
 		protected void DrawComment () {
-			if (EditIcon == null)
-				return;
+			if (EditIcon == null) {
+				EditIcon = new GUIContent (EditorGUIUtility.IconContent ("d_editicon.sml")) {
+					tooltip = "Edit Comment",
+				};
+			}
+			if (OkIcon == null) {
+				OkIcon = new GUIContent (EditorGUIUtility.IconContent ("d_FilterSelectedOnly")) {
+					tooltip = "OK",
+				};
+			}
+			if (CommentProp == null) {
+				CommentProp = serializedObject.FindProperty ("AranciaComment");
+			}
 
 			if (EditButtonStyle == null) {
 				//For some reason EditorStyles cannot be accessed from OnEnable
@@ -206,4 +196,44 @@ namespace AranciaAssets.EditorTools {
 			EditorGUILayout.Space (5);
 		}
 	}*/
+
+	public static class AranciaBehaviourRebaser {
+		[MenuItem ("Tools/Arancia/Convert MonoBehaviours")]
+		static void ConvertMonoBehaviours () {
+			var sb = new System.Text.StringBuilder ();
+			var scriptGuids = AssetDatabase.FindAssets ("t:Script", new string [] { "Assets/" });
+			var numChangedClasses = 0;
+			foreach (var scriptGuid in scriptGuids) {
+				var scriptPath = AssetDatabase.GUIDToAssetPath (scriptGuid);
+				var scriptLines = System.IO.File.ReadAllLines (scriptPath);
+				var shortScriptPath = scriptPath.Substring (7); //Strip "Assets/" prefix
+				var isChanged = false;
+				for (int i=0;i < scriptLines.Length;i++) {
+					var lineStr = scriptLines [i];
+					var idxOf = lineStr.IndexOf (": MonoBehaviour");
+					if (idxOf > 0) {
+						var classDef = lineStr.Substring (0, idxOf).TrimStart ();
+						if (EditorUtility.DisplayDialog ("Arancia", $"Change {classDef} ?", "Yes", "No")) {
+							var newlineStr = lineStr.Replace (": MonoBehaviour", ": AranciaAssets.EditorTools.AranciaBehaviour");
+							sb.AppendLine ($"{shortScriptPath}({i + 1}): {classDef}");
+							scriptLines [i] = newlineStr;
+							isChanged = true;
+							numChangedClasses++;
+						}
+					}
+				}
+				if (isChanged) {
+					System.IO.File.WriteAllLines (scriptPath, scriptLines);
+				}
+			}
+			if (numChangedClasses == 0) {
+				Debug.Log ("No MonoBehaviours to convert in Project");
+			} else {
+				var msg = $"{numChangedClasses} MonoBehaviours converted:\n{sb}";
+				EditorUtility.DisplayDialog ("Arancia", msg, "OK");
+				Debug.Log (msg);
+				AssetDatabase.Refresh ();
+			}
+		}
+	}
 }
