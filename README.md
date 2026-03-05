@@ -1,4 +1,7 @@
 # Arancia Editor Assets
+## Add a comment to MonoBehaviours!
+If you base your MonoBehaviours on AranciaBehaviour, you will be able to add a comment in the top of its editor in the Inspector. This may help you and others understand the scene setup at a later point. You can let Arancia automatically convert all MonoBehaviours to AranciaBehaviour via Tools -> Arancia -> Convert Monobehaviours
+
 ## Deep-copy a folder, re-mapping all references to assets!
 Select a folder in the Project window and hit CTRL+Shift+D (or right-click and select Ariancia/Deep Copy menu item), you will be prompted for a simple find-and-replace on asset names, and hit OK. A new folder will be created with all the same assets, but with references to other assets inside the new folder, instead of the standard behaviour of retaining references to the original folder.
 
@@ -21,7 +24,7 @@ If properties do not have a TooltipAttribute, but an XML comment or online docum
 ## Match invokation method when dropping new listener target
 When you drop a new target object on a UnityEvent listener, we try to match the Component and method previously invoked. Normal UnityEventDrawer will just reset the listener. This makes it much easier to quickly replace listener targets.
 
-## Copy and past event listeners
+## Copy and paste event listeners
 You can now select an event listener, copy it and then paste it on same listener (duplicate) or to another event of same type
 
 ## Drag and drop new listener targets directly on an event
