@@ -8,6 +8,7 @@ using System.Xml;
 
 using UnityEngine.Networking;
 using UnityEditor;
+using UnityEditor.PackageManager;
 
 namespace AranciaAssets.EditorTools {
 
@@ -120,6 +121,8 @@ namespace AranciaAssets.EditorTools {
             var doc = GetDocumentation (declaringType, "F:" + key);
             if (string.IsNullOrWhiteSpace (doc)) {
                 doc = GetDocumentation (declaringType, "P:" + key);
+                //if (string.IsNullOrWhiteSpace (doc))
+                //    UnityEngine.Debug.Log ($"Documentation not found for property: {property.propertyPath} {property.name} {property.displayName}");
             }
             return doc;
         }
@@ -133,7 +136,6 @@ namespace AranciaAssets.EditorTools {
             if (!LoadedTypes.Contains (declaringType.FullName)) {
                 if (LoadXmlDocumentation (declaringType, key, out documentation))
                     return documentation;
-                //UnityEngine.Debug.Log ($"Documentation not found, generating: {key}");
                 GenerateDocumentationForType (declaringType);
                 Documentation.TryGetValue (key, out documentation);
             }
@@ -179,6 +181,7 @@ namespace AranciaAssets.EditorTools {
             }*/
             var scriptGuids = AssetDatabase.FindAssets ("t:Script");
             ScriptPaths = scriptGuids.Select (guid => AssetDatabase.GUIDToAssetPath (guid)).Where (path => !path.Contains ("Editor/") && !path.EndsWith (".dll"));
+            //UnityEngine.Debug.Log ("ScriptPaths: " + string.Join ('\n', ScriptPaths));
             Directory.CreateDirectory (CachePath);
         }
 
@@ -186,29 +189,27 @@ namespace AranciaAssets.EditorTools {
 		/// Add documentation manually for specific type. Necessary since Unity 2021.3 and earlier (at least) does not generate XML documentation when compiling scripts
 		/// </summary>
         static void GenerateDocumentationForType (Type type) {
-            var typeFullName = type.FullName;
-            if (typeFullName.StartsWith ("UnityEngine.")) {
-                if (type.Namespace == "UnityEngine.EventSystems"
-                 //|| type.Namespace == "UnityEngine.Experimental.Rendering.Universal"
-                 //|| type.Namespace == "UnityEngine.Rendering.Universal"
-                 ) {
-                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
-                } else if (type.Namespace == "UnityEngine.InputSystem.UI") {
-                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.inputsystem@1.8/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
-                } else if (type.Namespace == "UnityEngine.Timeline") {
-                    ScrapeUnityDocumentation($"https://docs.unity3d.com/Packages/com.unity.timeline@1.8/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
-                } else if (type.Namespace == "UnityEngine.Rendering") {
-                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.render-pipelines.core@17.0/api/", typeFullName, UnityPackageDocMemberRegex);
-                } else if (type.Namespace == "UnityEngine.Rendering.Universal") {
-                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@17.0/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex);
-                } else {
-                    //Scrape built-in package documentation
-                    //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
-                    var typeName = type.FullName.Replace ("UnityEngine.", string.Empty);
-                    var docVersionString = typeName.StartsWith ("UI.") ? "2019.1" : UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
-                    ScrapeUnityDocumentation ($"https://docs.unity3d.com/{docVersionString}/Documentation/ScriptReference/{typeName}.html", typeFullName, UnityEngineDocMemberRegex);
-                }
+            /*var helpUrlAttrib = type.GetCustomAttribute<UnityEngine.HelpURLAttribute> ();
+            if (helpUrlAttrib != default) {
+                var url = helpUrlAttrib.URL;
+                ScrapeUnityDocumentation (url, type.FullName, url.Contains ("/Packages/") ? UnityPackageDocMemberRegex : UnityEngineDocMemberRegex);
                 return;
+            }*/
+            var typeFullName = type.FullName;
+            var assembly = type.Assembly;
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly (assembly);
+            if (packageInfo != null
+                && (packageInfo.source == PackageSource.Registry || packageInfo.source == PackageSource.BuiltIn)) {
+                var version = new Version (packageInfo.version);
+                if (ScrapeUnityDocumentation ($"https://docs.unity3d.com/Packages/{packageInfo.name}@{version.Major}.{version.Minor}/api/{typeFullName}.html", typeFullName, UnityPackageDocMemberRegex))
+                    return;
+            } else if (typeFullName.StartsWith ("UnityEngine.")) {
+                //Scrape built-in package documentation
+                //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
+                var typeName = type.FullName.Replace ("UnityEngine.", string.Empty);
+                var docVersionString = typeName.StartsWith ("UI.") ? "2019.1" : UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
+                if (ScrapeUnityDocumentation ($"https://docs.unity3d.com/{docVersionString}/Documentation/ScriptReference/{typeName}.html", typeFullName, UnityEngineDocMemberRegex))
+                    return;
             }
 
             if (typeFullName.StartsWith ("System."))
@@ -248,15 +249,14 @@ namespace AranciaAssets.EditorTools {
             var usingNamespaces = UsingRegex.Matches (srcFile).Select (mi => mi.Groups [1].Value);
 
             var className = ClassRegex.Matches (srcFile).Select (mi => mi.Groups [2].Value).FirstOrDefault (s => s == type.Name);
-            if (string.IsNullOrWhiteSpace (className)) {
+            if (string.IsNullOrWhiteSpace (className))
                 return false;
-            }
 
             var nameSpaceAndClass = !string.IsNullOrWhiteSpace (nameSpace) ? $"{nameSpace}.{className}" : className;
-            if (type.FullName != nameSpaceAndClass) {
-                UnityEngine.Debug.LogError ($"Namespace/Class mismatch {type.FullName} <> {nameSpaceAndClass}");
+            if (type.FullName != nameSpaceAndClass)
                 return false;
-            }
+
+            //UnityEngine.Debug.Log ($"{type.FullName} found in {filename}, scanning doc ...");
             nameSpaceAndClass += ".";
 
             //Debug.Log ($"{type.FullName} found in {filename}, scanning for documentation");
@@ -337,7 +337,7 @@ namespace AranciaAssets.EditorTools {
                         return t.FullName;
                     }
                 }
-                var bestGuess = $"{nameSpaceAndClass.Substring (0, nameSpaceAndClass.Length - 1)}+{typeName}";
+                var bestGuess = $"{nameSpaceAndClass [0..^1]}+{typeName}";
                 UnityEngine.Debug.Log ($"XMLDocumentation: {typeName} not found in assemblies, returning {bestGuess}");
                 return bestGuess;
             }
@@ -389,13 +389,11 @@ namespace AranciaAssets.EditorTools {
             AsyncDownloads.Remove (url);
 
             if (asyncOp.webRequest.result != UnityWebRequest.Result.Success) {
-                var result = asyncOp.webRequest.result != UnityWebRequest.Result.ProtocolError;
-                if (!result) {
-                    UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
-                    LoadedTypes.Add (nameSpaceAndClass);
-                }
+                LoadedTypes.Add (nameSpaceAndClass); //Do not attempt to rescrape
+                //var code = asyncOp.webRequest.responseCode;
                 asyncOp.webRequest.Dispose ();
-                return result;
+                UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
+                return false;
             }
             var doc = asyncOp.webRequest.downloadHandler.text;
             asyncOp.webRequest.Dispose ();
