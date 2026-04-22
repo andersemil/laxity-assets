@@ -10,11 +10,12 @@ using UnityEngine.Networking;
 using UnityEditor;
 using UnityEditor.PackageManager;
 
+using static UnityEngine.Debug;
+
 namespace AranciaAssets.EditorTools {
 
     /// <summary>
 	/// Static class for creating an XML Documentation dictionary which can be used for showing tooltips and headers in editors.
-	/// Based on this article https://learn.microsoft.com/en-us/archive/msdn-magazine/2019/october/csharp-accessing-xml-documentation-via-reflection
 	/// </summary>
     internal static class XMLDocumentation {
         /// <summary>
@@ -107,7 +108,7 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
 		/// Get XML documentation for a SerializedProperty
 		/// </summary>
-        public static string GetDocumentation (this UnityEditor.SerializedProperty property) {
+        public static string GetDocumentation (this SerializedProperty property) {
             var declaringType = property.serializedObject.targetObject.GetType ();
             var propName = property.propertyPath;
             var idxOfDot = propName.IndexOf ('.');
@@ -122,7 +123,7 @@ namespace AranciaAssets.EditorTools {
             if (string.IsNullOrWhiteSpace (doc)) {
                 doc = GetDocumentation (declaringType, "P:" + key);
                 //if (string.IsNullOrWhiteSpace (doc))
-                //    UnityEngine.Debug.Log ($"Documentation not found for property: {property.propertyPath} {property.name} {property.displayName}");
+                //    Log ($"Documentation not found for property: {property.propertyPath} {property.name} {property.displayName}");
             }
             return doc;
         }
@@ -181,7 +182,7 @@ namespace AranciaAssets.EditorTools {
             }*/
             var scriptGuids = AssetDatabase.FindAssets ("t:Script");
             ScriptPaths = scriptGuids.Select (guid => AssetDatabase.GUIDToAssetPath (guid)).Where (path => !path.Contains ("Editor/") && !path.EndsWith (".dll"));
-            //UnityEngine.Debug.Log ("ScriptPaths: " + string.Join ('\n', ScriptPaths));
+            //Log ("ScriptPaths: " + string.Join ('\n', ScriptPaths));
             Directory.CreateDirectory (CachePath);
         }
 
@@ -205,7 +206,7 @@ namespace AranciaAssets.EditorTools {
                     return;
             } else if (typeFullName.StartsWith ("UnityEngine.")) {
                 //Scrape built-in package documentation
-                //UnityEngine.Debug.Log ($"GenerateDocumentationForType {typeFullName}");
+                //Log ($"GenerateDocumentationForType {typeFullName}");
                 var typeName = type.FullName.Replace ("UnityEngine.", string.Empty);
                 var docVersionString = typeName.StartsWith ("UI.") ? "2019.1" : UnityEngine.Application.unityVersion.Substring (0, UnityEngine.Application.unityVersion.LastIndexOf ('.'));
                 if (ScrapeUnityDocumentation ($"https://docs.unity3d.com/{docVersionString}/Documentation/ScriptReference/{typeName}.html", typeFullName, UnityEngineDocMemberRegex))
@@ -221,9 +222,9 @@ namespace AranciaAssets.EditorTools {
             if (naivePath != null) {
                 if (ScanForDocumentation (naivePath, type))
                     return;
-                UnityEngine.Debug.Log ($"XMLDocumentation: Definition of {typeFullName} not found in {naivePath}, scanning whole directory ...");
+                Log ($"XMLDocumentation: Definition of {typeFullName} not found in {naivePath}, scanning whole directory ...");
             } else {
-                UnityEngine.Debug.Log ($"XMLDocumentation: Naive search on filename {type.Name}.cs not found, scanning all scripts ...");
+                Log ($"XMLDocumentation: Naive search on filename {type.Name}.cs not found, scanning all scripts ...");
             }
 
             foreach (var filename in ScriptPaths) {
@@ -256,7 +257,7 @@ namespace AranciaAssets.EditorTools {
             if (type.FullName != nameSpaceAndClass)
                 return false;
 
-            //UnityEngine.Debug.Log ($"{type.FullName} found in {filename}, scanning doc ...");
+            //Log ($"{type.FullName} found in {filename}, scanning doc ...");
             nameSpaceAndClass += ".";
 
             //Debug.Log ($"{type.FullName} found in {filename}, scanning for documentation");
@@ -274,15 +275,15 @@ namespace AranciaAssets.EditorTools {
                             continue;
                         key += $"({ClassifyType (nameSpaceAndClass, usingNamespaces, mi.Groups [4].Value)})";
                     }
-                    //UnityEngine.Debug.Log ($"{key} => {xmlComment}");
+                    //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 } else if (mi.Groups [5].Success) {
                     key = $"F:{nameSpaceAndClass}{mi.Groups [5].Value}";
-                    //UnityEngine.Debug.Log ($"{key} => {xmlComment}");
+                    //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 } else if (mi.Groups [6].Success) {
                     key = $"P:{nameSpaceAndClass}{mi.Groups [6].Value}";
-                    //UnityEngine.Debug.Log ($"{key} => {xmlComment}");
+                    //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 }
             }
@@ -323,7 +324,7 @@ namespace AranciaAssets.EditorTools {
                             var n = $"{uns}.{splitTypeNames [0]}";
                             t = asm.GetType (n);
                             if (t != null) {
-                                //UnityEngine.Debug.Log ($"ClassifyType: Found type {n} in {asm.FullName}");
+                                //Log ($"ClassifyType: Found type {n} in {asm.FullName}");
                                 break;
                             }
                         }
@@ -338,7 +339,7 @@ namespace AranciaAssets.EditorTools {
                     }
                 }
                 var bestGuess = $"{nameSpaceAndClass [0..^1]}+{typeName}";
-                UnityEngine.Debug.Log ($"XMLDocumentation: {typeName} not found in assemblies, returning {bestGuess}");
+                Log ($"XMLDocumentation: {typeName} not found in assemblies, returning {bestGuess}");
                 return bestGuess;
             }
         }
@@ -379,7 +380,7 @@ namespace AranciaAssets.EditorTools {
             }
 
             if (!AsyncDownloads.TryGetValue (url, out UnityWebRequestAsyncOperation asyncOp)) {
-                //UnityEngine.Debug.Log ($"Scraping doc for {nameSpaceAndClass} from {url}");
+                //Log ($"Scraping doc for {nameSpaceAndClass} from {url}");
                 var req = UnityWebRequest.Get (url);
                 asyncOp = req.SendWebRequest ();
                 AsyncDownloads.Add (url, asyncOp);
@@ -392,7 +393,7 @@ namespace AranciaAssets.EditorTools {
                 LoadedTypes.Add (nameSpaceAndClass); //Do not attempt to rescrape
                 //var code = asyncOp.webRequest.responseCode;
                 asyncOp.webRequest.Dispose ();
-                UnityEngine.Debug.LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
+                LogError ($"Error while scraping doc at {url} => {asyncOp.webRequest.error}");
                 return false;
             }
             var doc = asyncOp.webRequest.downloadHandler.text;
@@ -407,7 +408,7 @@ namespace AranciaAssets.EditorTools {
                         var sectionStartIndex = prevMatch.Index + prevMatch.Length;
                         var section = doc [sectionStartIndex..mi.Index];
                         var sectionHeader = prevMatch.Groups [1].Value.Trim ();
-                        //UnityEngine.Debug.Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
+                        //Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
                         ScrapeUnityDocSection (d, nameSpaceAndClass, sectionHeader, section, memberRegex);
                     }
                     prevMatch = mi;
@@ -418,7 +419,7 @@ namespace AranciaAssets.EditorTools {
                 var sectionStartIndex = prevMatch.Index + prevMatch.Length;
                 var section = doc [sectionStartIndex..];
                 var sectionHeader = prevMatch.Groups [1].Value.Trim ();
-                //UnityEngine.Debug.Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
+                //Log ($"{sectionHeader} section: {sectionStartIndex} - {mi.Index}");
                 ScrapeUnityDocSection (d, nameSpaceAndClass, sectionHeader, section, memberRegex);
             }
 
@@ -451,7 +452,7 @@ namespace AranciaAssets.EditorTools {
                     var xmlComment = mi.Groups [2].Value.Trim ().Replace ("<p>", string.Empty).Replace ("</p>", string.Empty);
                     if (string.IsNullOrWhiteSpace (xmlComment) || d.ContainsKey (key))
                         continue;
-                    //UnityEngine.Debug.Log ($"{key} => {xmlComment}");
+                    //Log ($"{key} => {xmlComment}");
                     d.Add (key, xmlComment);
                 }
             }
@@ -487,7 +488,7 @@ namespace AranciaAssets.EditorTools {
             }
             sw.Write ("\t</members>\n</doc>\n");
 
-            //UnityEngine.Debug.Log ($"Cached doc for {url} in {filename}");
+            //Log ($"Cached doc for {url} in {filename}");
         }
 
         /// <summary>
@@ -498,7 +499,7 @@ namespace AranciaAssets.EditorTools {
             if (!File.Exists (filename))
                 return false;
 
-            //UnityEngine.Debug.Log ($"Loading cached {url} from {filename}");
+            //Log ($"Loading cached {url} from {filename}");
 
             LoadXMLCache (filename);
             return true;
@@ -517,13 +518,13 @@ namespace AranciaAssets.EditorTools {
                     var val = xmlReader.ReadInnerXml ();
                     if (!string.IsNullOrWhiteSpace (val)) {
                         Documentation [key] = val;
-                        //UnityEngine.Debug.Log ($"FROM CACHE: {raw_name} => {str}");
+                        //Log ($"FROM CACHE: {raw_name} => {str}");
                     }
                 }
             }
         }
 
-        static string CachePath { get { return Path.Combine (UnityEngine.Application.temporaryCachePath, "aranciaCache"); } }
+        static string CachePath { get { return Path.Combine (Path.GetTempPath (), "aranciaCache"); } }
 
         static string GenerateCacheName (string url) {
             return Path.Combine (CachePath, ComputeMD5Hash (url) + ".xml");
