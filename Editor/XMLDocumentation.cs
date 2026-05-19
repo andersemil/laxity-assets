@@ -50,15 +50,17 @@ namespace AranciaAssets.EditorTools {
                 return false;
             using var xmlReader = XmlReader.Create (new StringReader (File.ReadAllText (xmlFilePath)));
             while (xmlReader.Read ()) {
-                if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.Name == "member") {
-                    var raw_name = xmlReader ["name"];
-                    xmlReader.ReadToFollowing ("summary");
-                    var str = xmlReader.ReadInnerXml ();
-                    if (!string.IsNullOrWhiteSpace (str)) {
-                        Documentation [raw_name] = str.Replace ("<para>", string.Empty).Replace ("</para>", string.Empty).Trim ();
-                        if (key == raw_name)
-                            documentation = str;
-                    }
+                if (xmlReader.NodeType != XmlNodeType.Element || xmlReader.Name != "member")
+                    continue;
+                var raw_name = xmlReader ["name"];
+                xmlReader.ReadToFollowing ("summary");
+                var str = xmlReader.ReadInnerXml ();
+                if (string.IsNullOrWhiteSpace (str))
+                    continue;
+                var newKey = raw_name [2..];
+                Documentation [newKey] = str.Replace ("<para>", string.Empty).Replace ("</para>", string.Empty).Trim ();
+                if (key == newKey) {
+                    documentation = str;
                 }
             }
             return true;
@@ -83,7 +85,7 @@ namespace AranciaAssets.EditorTools {
 		/// </summary>
         public static string GetDocumentation (this PropertyInfo propertyInfo) {
             var declaringType = propertyInfo.DeclaringType;
-            var key = "P:" + XmlDocumentationKeyHelper (declaringType.FullName, propertyInfo.Name);
+            var key = propertyInfo.Name;
             return GetDocumentation (declaringType, key);
         }
 
@@ -92,7 +94,7 @@ namespace AranciaAssets.EditorTools {
 		/// </summary>
         public static string GetDocumentation (this MethodInfo methodInfo) {
             var declaringType = methodInfo.DeclaringType;
-            var key = "M:" + XmlDocumentationKeyHelper (declaringType.FullName, methodInfo.Name);
+            var key = methodInfo.Name;
             return GetDocumentation (declaringType, key);
         }
 
@@ -101,7 +103,9 @@ namespace AranciaAssets.EditorTools {
 		/// </summary>
         public static string GetDocumentation (this MethodInfo methodInfo, string argumentString) {
             var declaringType = methodInfo.DeclaringType;
-            var key = "M:" + XmlDocumentationKeyHelper (declaringType.FullName, methodInfo.Name, argumentString);
+            var key = methodInfo.Name;
+            if (!string.IsNullOrEmpty (argumentString))
+                key += argumentString;
             return GetDocumentation (declaringType, key);
         }
 
@@ -111,30 +115,15 @@ namespace AranciaAssets.EditorTools {
         public static string GetDocumentation (this SerializedProperty property) {
             var declaringType = property.serializedObject.targetObject.GetType ();
             var propName = property.propertyPath;
-            var idxOfDot = propName.IndexOf ('.');
-            if (idxOfDot > 0) {
-                propName = propName.Substring (0, idxOfDot);
-            }
-            if (propName.StartsWith ("m_")) {
-                propName = char.ToLower (propName [2]) + propName [3..];
-            }
-            var key = XmlDocumentationKeyHelper (declaringType.FullName, propName);
-            var doc = GetDocumentation (declaringType, "F:" + key);
-            if (string.IsNullOrWhiteSpace (doc)) {
-                doc = GetDocumentation (declaringType, "P:" + key);
-                //if (string.IsNullOrWhiteSpace (doc))
-                //    Log ($"Documentation not found for property: {property.propertyPath} {property.name} {property.displayName}");
-            }
-            return doc;
+            return GetDocumentation (declaringType, propName);
         }
 
-        /// <summary>
-		/// Attempt to find documentation for the given member
-		/// </summary>
-        static string GetDocumentation (Type declaringType, string key) {
+        static string GetDocumentation (Type declaringType, string memberName) {
+            var fullName = declaringType.FullName;
+            var key = fullName + "." + memberName;
             if (Documentation.TryGetValue (key, out string documentation))
                 return documentation;
-            if (!LoadedTypes.Contains (declaringType.FullName)) {
+            if (!LoadedTypes.Contains (fullName)) {
                 if (LoadXmlDocumentation (declaringType, key, out documentation))
                     return documentation;
                 GenerateDocumentationForType (declaringType);
@@ -512,15 +501,16 @@ namespace AranciaAssets.EditorTools {
             using var streamReader = new StreamReader (new FileStream (filename, FileMode.Open));
             using var xmlReader = XmlReader.Create (streamReader);
             while (xmlReader.Read ()) {
-                if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.Name == "member") {
-                    var key = xmlReader ["name"];
-                    xmlReader.ReadToFollowing ("summary");
-                    var val = xmlReader.ReadInnerXml ();
-                    if (!string.IsNullOrWhiteSpace (val)) {
-                        Documentation [key] = val;
-                        //Log ($"FROM CACHE: {raw_name} => {str}");
-                    }
-                }
+                if (xmlReader.NodeType != XmlNodeType.Element || xmlReader.Name != "member")
+                    continue;
+                var key = xmlReader ["name"];
+                xmlReader.ReadToFollowing ("summary");
+                var val = xmlReader.ReadInnerXml ();
+                if (string.IsNullOrWhiteSpace (val))
+                    continue;
+                key = key [2..];
+                Documentation [key] = val;
+                //Log ($"FROM CACHE: {raw_name} => {str}");
             }
         }
 
