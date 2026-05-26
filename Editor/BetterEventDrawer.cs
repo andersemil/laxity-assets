@@ -49,6 +49,7 @@ namespace AranciaAssets.EditorTools {
         static FieldInfo fiPopupListApplyAction;
         static FieldInfo fiListenersArray;
         static FieldInfo fiDummyEvent;
+        static Texture2D Icon;
 
         /// <summary>
         /// Arguments to supply to internal method "FindMethod"
@@ -358,12 +359,14 @@ namespace AranciaAssets.EditorTools {
             var headerContent = label.text;
             base.OnGUI (position, property, label);
             if (m_HeaderContent == null) {
-                var icon = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("db4aaf330ef7e43858c9c49ff984c8c3"));
+                if (Icon == null) {
+                    Icon = AssetDatabase.LoadAssetAtPath<Texture2D> (AssetDatabase.GUIDToAssetPath ("db4aaf330ef7e43858c9c49ff984c8c3"));
+                }
                 var tooltip = label.tooltip;
                 if (string.IsNullOrWhiteSpace (tooltip)) {
                     tooltip = property.GetDocumentation ();
                 }
-                m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { DummyEvent }), icon, tooltip);
+                m_HeaderContent = new GUIContent (headerContent + miGetEventParams.Invoke (this, new object [] { DummyEvent }), Icon, tooltip);
             }
 
             var evt = Event.current;
