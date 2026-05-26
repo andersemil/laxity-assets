@@ -265,7 +265,14 @@ namespace AranciaAssets.EditorTools {
             return false;
         }
 
+        /// <summary>
+        /// TotalRect which is used for hittesting when performing drag and drop
+        /// </summary>
         Rect TotalRect = new ();
+
+        /// <summary>
+        /// Ensure that specified rect is contained in TotalRect
+        /// </summary>
         void GrowTotalRect (Rect other) {
             if (TotalRect.xMin > other.xMin) TotalRect.xMin = other.xMin;
             if (TotalRect.xMax < other.xMax) TotalRect.xMax = other.xMax;
@@ -280,7 +287,9 @@ namespace AranciaAssets.EditorTools {
             if (listenersArray.hasMultipleDifferentValues) {
                 //The Serialization system applies the Serialized data of one object to all other objects in the selection.
                 //We handle this by creating a SerializedObject for each object and applying the modifications individually
-                foreach (var targetObject in listenersArray.serializedObject.targetObjects) {
+                var targetObjects = listenersArray.serializedObject.targetObjects;
+                Undo.RecordObjects (targetObjects, "Add listeners to events");
+                foreach (var targetObject in targetObjects) {
                     using var temSerializedObject = new SerializedObject (targetObject);
                     var listenerArrayProperty = temSerializedObject.FindProperty (listenersArray.propertyPath);
                     listenerArrayProperty.arraySize += targets.Length;
@@ -290,6 +299,7 @@ namespace AranciaAssets.EditorTools {
                 listenersArray.serializedObject.Update ();
                 list.index = list.serializedProperty.arraySize - targets.Length;
             } else {
+                Undo.RecordObject (listenersArray.serializedObject.targetObject, "Add listeners to event");
                 for (int i = 0; i < targets.Length; i++) {
                     ReorderableList.defaultBehaviours.DoAddButton (list);
                 }
