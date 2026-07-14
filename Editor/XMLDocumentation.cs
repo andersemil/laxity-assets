@@ -257,7 +257,7 @@ namespace AranciaAssets.EditorTools {
                     //Ignore non-public documented methods
                     if (!mi.Groups [2].Success || mi.Groups [2].Value != "public")
                         continue;
-                    key = $"M:{nameSpaceAndClass}{mi.Groups [3].Value}";
+                    key = nameSpaceAndClass + mi.Groups [3].Value;
                     if (mi.Groups [4].Success) {
                         //Ignore extension methods
                         if (mi.Groups [4].Value == "this")
@@ -267,11 +267,11 @@ namespace AranciaAssets.EditorTools {
                     //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 } else if (mi.Groups [5].Success) {
-                    key = $"F:{nameSpaceAndClass}{mi.Groups [5].Value}";
+                    key = nameSpaceAndClass + mi.Groups [5].Value;
                     //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 } else if (mi.Groups [6].Success) {
-                    key = $"P:{nameSpaceAndClass}{mi.Groups [6].Value}";
+                    key = nameSpaceAndClass + mi.Groups [6].Value;
                     //Log ($"{key} => {xmlComment}");
                     Documentation.Add (key, xmlComment);
                 }
@@ -416,7 +416,7 @@ namespace AranciaAssets.EditorTools {
 
             var en = d.GetEnumerator ();
             while (en.MoveNext ())
-                Documentation [en.Current.Key] = en.Current.Value;
+                Documentation [en.Current.Key [2..]] = en.Current.Value;
 
             LoadedTypes.Add (nameSpaceAndClass);
             return true;
@@ -464,12 +464,12 @@ namespace AranciaAssets.EditorTools {
         /// <summary>
         /// Update cached xml documentation file
         /// </summary>
-        static void UpdateDocumentationCache (string url, IDictionary<string, string> dict) {
+        static void UpdateDocumentationCache (string url, IDictionary<string, string> xmlDict) {
             var filename = GenerateCacheName (url);
             using var fs = new FileStream (filename, FileMode.Create);
             using var sw = new StreamWriter (fs);
             sw.Write ($"<?xml version=\"1.0\"?>\n<doc>\n\t<!-- scraped from {url} -->\n\t<members>\n");
-            var en = dict.GetEnumerator ();
+            var en = xmlDict.GetEnumerator ();
             while (en.MoveNext ()) {
                 sw.Write ("\t\t<member name=\"" + en.Current.Key);
                 sw.Write ("\">\n\t\t\t<summary>" + System.Security.SecurityElement.Escape (en.Current.Value));
