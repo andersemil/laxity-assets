@@ -299,7 +299,7 @@ namespace AranciaAssets.EditorTools {
 				ResultsScrollRect = EditorGUILayout.BeginVertical ();
 				resultScrollPosition = EditorGUILayout.BeginScrollView (resultScrollPosition, false, false, GUILayout.ExpandHeight (true));
 				for (int i = 0; i < Results.Count; i++) {
-					if (GUILayout.Button (Results [i].text, buttonHoverStyle)) {
+					if (Results [i].obj != null && GUILayout.Button (Results [i].text, buttonHoverStyle)) {
 						SelectedResult = Results [i];
 					}
 				}
@@ -312,8 +312,10 @@ namespace AranciaAssets.EditorTools {
 
 			PrevFocusControl = newFocus;
 
-			if (SelectedResult != null) {
+			if (SelectedResult?.obj != null) {
 				ShowResult (SelectedResult);
+			} else {
+				Results.Remove (SelectedResult);
 			}
 		}
 
