@@ -101,7 +101,7 @@ namespace AranciaAssets.EditorTools {
 
 			var commentString = CommentProp.stringValue;
 			GUILayout.BeginHorizontal ();
-			GUILayout.Space (30f);
+			GUILayout.Space (20f);
 			if (!EditingComment) {
 				EditorGUILayout.LabelField (commentString, LabelStyle);
 				DrawCommentLine ();
@@ -122,7 +122,6 @@ namespace AranciaAssets.EditorTools {
 					EditorGUI.FocusTextInControl (CommentControlName);
 					TextEditor te = (TextEditor)GUIUtility.GetStateObject (typeof (TextEditor), controlID);
 					if (te != null) {
-						Debug.Log ("OnFocus");
 						te.OnFocus (); // This is the "secret" call that activates keyboard input
 					}
 					Repaint ();
